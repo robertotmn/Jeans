@@ -12,6 +12,9 @@ def pattern_to_svg(pattern: Pattern, gap_mm: float = 30.0) -> bytes:
     spacing. Each piece keeps its native coordinates, translated to start at
     (cursor_x, 0). The bounding box of each piece is computed via PatternPiece.bbox().
     """
+    TOP_MARGIN_MM = 15.0
+    BOTTOM_MARGIN_MM = 35.0
+
     # Compute placement: cursor_x advances by piece width + gap
     placed = []
     cursor_x = 0.0
@@ -21,13 +24,13 @@ def pattern_to_svg(pattern: Pattern, gap_mm: float = 30.0) -> bytes:
     for piece in pattern:
         x0, y0, x1, y1 = piece.bbox()
         offset_x = cursor_x - x0
-        offset_y = -y0  # translate so piece's top is at y=0
+        offset_y = -y0 + TOP_MARGIN_MM   # leave room above for piece-name labels
         placed.append((piece, offset_x, offset_y))
         cursor_x += (x1 - x0) + gap_mm
         max_y_used = max(max_y_used, y1 - y0)
 
-    total_w = max(cursor_x, 100.0)   # at least 100mm wide
-    total_h = max_y_used + 50.0      # extra for labels
+    total_w = max(cursor_x, 100.0)
+    total_h = TOP_MARGIN_MM + max_y_used + BOTTOM_MARGIN_MM
 
     dwg = svgwrite.Drawing(
         size=(f"{total_w}mm", f"{total_h}mm"),
