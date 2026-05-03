@@ -53,3 +53,37 @@ def test_build_full_pattern_pieces_have_valid_outlines(default_measurements):
         x0, y0, x1, y1 = piece.bbox()
         assert x1 > x0, f"piece {piece.name} has zero width"
         assert y1 > y0, f"piece {piece.name} has zero height"
+
+
+def test_front_label_inside_outline_basic(default_measurements):
+    """The 'FRONT' label is positioned at K. Verify K falls inside the front outline."""
+    from shapely.geometry import Polygon, Point as ShapelyPoint
+    from jeans_pattern.pattern import build_full_pattern
+    pat = build_full_pattern(default_measurements, style="basic")
+    front = next(p for p in pat if p.name == "front")
+    poly = Polygon([(p.x, p.y) for p in front.outline])
+    label_point, _label_text = front.labels[0]
+    assert poly.contains(ShapelyPoint(label_point.x, label_point.y)), \
+        f"front label at {label_point} falls outside the outline"
+
+
+def test_front_label_inside_outline_updated(default_measurements):
+    from shapely.geometry import Polygon, Point as ShapelyPoint
+    from jeans_pattern.pattern import build_full_pattern
+    pat = build_full_pattern(default_measurements, style="updated")
+    front = next(p for p in pat if p.name == "front")
+    poly = Polygon([(p.x, p.y) for p in front.outline])
+    label_point, _ = front.labels[0]
+    assert poly.contains(ShapelyPoint(label_point.x, label_point.y)), \
+        f"updated front label at {label_point} falls outside the outline"
+
+
+def test_back_label_inside_outline_updated(default_measurements):
+    from shapely.geometry import Polygon, Point as ShapelyPoint
+    from jeans_pattern.pattern import build_full_pattern
+    pat = build_full_pattern(default_measurements, style="updated")
+    back = next(p for p in pat if p.name == "back")
+    poly = Polygon([(p.x, p.y) for p in back.outline])
+    label_point, _ = back.labels[0]
+    assert poly.contains(ShapelyPoint(label_point.x, label_point.y)), \
+        f"updated back label at {label_point} falls outside the outline"

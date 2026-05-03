@@ -1,16 +1,18 @@
 """Updated 501-style draft. Builds on the basic draft (Task 4-5) with:
 
-Implemented (structural points):
+Implemented in outline polygon (cut shape):
 - I shifted 3/4" toward outseam, lowered 1/4"
-- F-AA = seat/16 (new fly axis curve waypoint)
 - I-X (back) = seat/10 (raised back-yoke point)
 - Y-Z redrawn through new X
 - T,P moved down 2" (new perpendicular construction at hem)
 
+Tracked as fields, deferred to post-MVP curve rendering:
+- AA (F-AA = seat/16 fly axis waypoint) — used as Bezier control point
+  to replace the straight I->G segment with a smooth fly curve.
+
 Deferred to MVP post-processing (visual refinements not in outline polygon):
 - Curve I-H (slight curve replacing straight chord)
 - Recurve B-H (hip curve, currently straight chord)
-- Fly curve I-AA-G (currently piecewise polyline through AA)
 - Hem perpendicular to outseam (currently inherited from basic horizontal hem)
 - Hollow thigh (front 3/4", back 1")
 - Seat curve S-Z (back, currently straight chord)
@@ -53,11 +55,16 @@ class UpdatedFront:
         return self.new_H
 
     def outline_polygon(self) -> list[Point]:
+        """Updated front outline (simple polygon, 8 vertices).
+
+        Same vertex count as basic — AA is intentionally excluded from the
+        polygon because as a fly-axis waypoint (x=0, below F) it would create
+        a self-intersection with the closing chord B->new_H. AA is preserved
+        as a field so post-MVP Bezier rendering can sample I->AA->G as a
+        smooth curve replacing the straight I->G segment.
+        """
         b = self.base
-        # H -> I (waist) -> AA (fly curve) -> G (fly top extension) ->
-        # P_new (knee out, perpendicular hem) -> M (hem out) ->
-        # L (hem in) -> O (knee in) -> B (crotch).
-        return [self.new_H, self.new_I, self.AA, b.G, self.P_new, b.M, b.L, b.O, b.B]
+        return [self.new_H, self.new_I, b.G, self.P_new, b.M, b.L, b.O, b.B]
 
 
 @dataclass(frozen=True)

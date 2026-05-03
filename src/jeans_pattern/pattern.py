@@ -10,6 +10,12 @@ class PatternPiece:
     labels: list[tuple[Point, str]] = field(default_factory=list)
     seam_allowance_mm: float = SA_3_8_IN_MM                # 3/8" default
 
+    def __post_init__(self):
+        if len(self.outline) < 3:
+            raise ValueError(
+                f"piece {self.name!r}: outline needs >=3 points, got {len(self.outline)}"
+            )
+
     def bbox(self) -> tuple[float, float, float, float]:
         xs = [p.x for p in self.outline]
         ys = [p.y for p in self.outline]
@@ -21,12 +27,6 @@ class Pattern:
 
     def __iter__(self):
         return iter(self.pieces)
-
-
-def _outline_validate(piece: PatternPiece) -> PatternPiece:
-    if len(piece.outline) < 3:
-        raise ValueError(f"piece {piece.name!r}: outline needs >=3 points, got {len(piece.outline)}")
-    return piece
 
 
 def build_full_pattern(m: "Measurements", style: str = "updated") -> Pattern:
@@ -71,15 +71,15 @@ def build_full_pattern(m: "Measurements", style: str = "updated") -> Pattern:
     pocket = build_front_pocket(m)
 
     pieces = [
-        _outline_validate(front_piece),
-        _outline_validate(back_piece),
-        _outline_validate(build_waistband(m)),
-        _outline_validate(fly["buttonhole_side"]),
-        _outline_validate(fly["button_stand"]),
-        _outline_validate(pocket["pocket_bag"]),
-        _outline_validate(pocket["pocket_facing"]),
-        _outline_validate(build_back_pocket(m)),
-        _outline_validate(build_yoke(m)),
-        _outline_validate(build_belt_loop()),
+        front_piece,
+        back_piece,
+        build_waistband(m),
+        fly["buttonhole_side"],
+        fly["button_stand"],
+        pocket["pocket_bag"],
+        pocket["pocket_facing"],
+        build_back_pocket(m),
+        build_yoke(m),
+        build_belt_loop(),
     ]
     return Pattern(pieces=pieces)
