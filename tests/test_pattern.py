@@ -20,3 +20,36 @@ def test_pattern_pieces_iteration():
     b = PatternPiece(name="b", outline=[Point(0,0), Point(2,0), Point(2,2)])
     pat = Pattern(pieces=[a, b])
     assert [p.name for p in pat] == ["a", "b"]
+
+
+def test_build_full_pattern_basic(default_measurements):
+    from jeans_pattern.pattern import build_full_pattern
+    pat = build_full_pattern(default_measurements, style="basic")
+    names = {p.name for p in pat}
+    assert {"front", "back", "waistband", "fly_buttonhole_side", "fly_button_stand",
+            "pocket_bag", "pocket_facing", "back_pocket", "yoke", "belt_loop"}.issubset(names)
+
+
+def test_build_full_pattern_updated(default_measurements):
+    from jeans_pattern.pattern import build_full_pattern
+    pat = build_full_pattern(default_measurements, style="updated")
+    assert any(p.name == "front" for p in pat)
+    assert any(p.name == "back" for p in pat)
+
+
+def test_build_full_pattern_unknown_style_raises(default_measurements):
+    from jeans_pattern.pattern import build_full_pattern
+    import pytest
+    with pytest.raises(ValueError):
+        build_full_pattern(default_measurements, style="bogus")
+
+
+def test_build_full_pattern_pieces_have_valid_outlines(default_measurements):
+    from jeans_pattern.pattern import build_full_pattern
+    pat = build_full_pattern(default_measurements, style="updated")
+    for piece in pat:
+        assert len(piece.outline) >= 3, f"piece {piece.name} has degenerate outline"
+        # bbox sanity: width and height both positive (in mm)
+        x0, y0, x1, y1 = piece.bbox()
+        assert x1 > x0, f"piece {piece.name} has zero width"
+        assert y1 > y0, f"piece {piece.name} has zero height"
