@@ -37,3 +37,15 @@ def test_updated_back_T_moved_down(default_measurements):
     b = build_updated_back(default_measurements)
     base = build_basic_back(default_measurements)
     assert b.T_new.y > base.T.y + 1.5 * INCH
+
+def test_updated_back_Y_at_new_waist_height(default_measurements):
+    """Y_new is on the W-R outseam at the new (raised) waist line."""
+    b = build_updated_back(default_measurements)
+    assert b.Y.y == pytest.approx(b.X.y)
+
+def test_updated_back_Z_at_new_waist_height(default_measurements):
+    """Z_new keeps its x position but follows the raised waist line up to X.y."""
+    b = build_updated_back(default_measurements)
+    base = build_basic_back(default_measurements)
+    assert b.Z.x == pytest.approx(base.Z.x)
+    assert b.Z.y == pytest.approx(b.X.y)

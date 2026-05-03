@@ -1,11 +1,19 @@
 """Updated 501-style draft. Builds on the basic draft (Task 4-5) with:
-- I shifted 3/4" toward outseam, lowered 1/4" + slight curve I-H
-- F-AA = seat/16 (new fly axis curve point)
-- I-X (back) = seat/10 (raised back-yoke)
+
+Implemented (structural points):
+- I shifted 3/4" toward outseam, lowered 1/4"
+- F-AA = seat/16 (new fly axis curve waypoint)
+- I-X (back) = seat/10 (raised back-yoke point)
 - Y-Z redrawn through new X
-- Hem perpendicular to outseam (not construction line)
-- T,P moved down 2" along outseam
-- Hollowed thigh (front 3/4", back 1")
+- T,P moved down 2" (new perpendicular construction at hem)
+
+Deferred to MVP post-processing (visual refinements not in outline polygon):
+- Curve I-H (slight curve replacing straight chord)
+- Recurve B-H (hip curve, currently straight chord)
+- Fly curve I-AA-G (currently piecewise polyline through AA)
+- Hem perpendicular to outseam (currently inherited from basic horizontal hem)
+- Hollow thigh (front 3/4", back 1")
+- Seat curve S-Z (back, currently straight chord)
 
 PDF reference: pages 19-24 of drafting_selvedge_jeans.pdf.
 Excel formulas: cells M21 (F-AA = seat/16) and M22 (I-X for 501 = seat/10).
@@ -20,7 +28,7 @@ from .draft_basic import (
 INCH = 25.4
 
 
-@dataclass
+@dataclass(frozen=True)
 class UpdatedFront:
     """Wrapper around the basic FrontPoints with the updated-draft additions.
     Attribute access on this object falls back to the underlying FrontPoints
@@ -52,7 +60,7 @@ class UpdatedFront:
         return [self.new_H, self.new_I, self.AA, b.G, self.P_new, b.M, b.L, b.O, b.B]
 
 
-@dataclass
+@dataclass(frozen=True)
 class UpdatedBack:
     """Wrapper around the basic BackPoints with updated-draft additions."""
     base: BackPoints
@@ -95,6 +103,10 @@ def build_updated_front(m: Measurements) -> UpdatedFront:
     AA = Point(0, base.F.y + m.seat_mm / 16)
 
     # P_new: perpendicular from M to knee line, then 2" along outseam G->M
+    # NOTE: PDF page 22 instruction is ambiguous between "2 inches along the
+    # *new* perpendicular line (straight down)" vs. "2 inches along the
+    # *original* outseam G->M direction". We use the latter interpretation
+    # (along original outseam unit vector). Visual check pending in Task 14.
     dx = base.M.x - base.G.x
     dy = base.M.y - base.G.y
     norm = (dx ** 2 + dy ** 2) ** 0.5
@@ -123,6 +135,10 @@ def build_updated_back(m: Measurements,
     # T_new: perpendicular from V to knee line, then 2" along outseam V->S
     # (V is the hem-outseam back point; S is the seat extension; outseam V->S goes upward toward S)
     # The construction is symmetric to front P_new but with V and S as the line endpoints.
+    # NOTE: PDF page 22 instruction is ambiguous between "2 inches along the
+    # *new* perpendicular line (straight down)" vs. "2 inches along the
+    # *original* outseam V->S direction". We use the latter interpretation
+    # (along original outseam unit vector). Visual check pending in Task 14.
     knee_y = base.T.y     # original T sits on the knee line
     T_perp = Point(base.V.x, knee_y)
     dx = base.V.x - base.S.x
