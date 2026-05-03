@@ -19,5 +19,19 @@ python -m venv .venv
 source .venv/Scripts/activate    # Windows bash; on macOS: source .venv/bin/activate
 pip install -e ".[dev]"
 pytest
-python -m jeans_app.main          # GUI (after Task 13)
+python -m jeans_app.main          # GUI
+```
+
+## Packaging
+
+PyInstaller specs are provided in `packaging/`. Build natively on each target:
+
+```bash
+# On Windows:
+pyinstaller packaging/pyinstaller_win.spec --noconfirm
+# Output: dist/SelvedgeJeansPattern.exe
+
+# On macOS:
+pyinstaller packaging/pyinstaller_mac.spec --noconfirm
+# Output: dist/SelvedgeJeansPattern.app
 ```
