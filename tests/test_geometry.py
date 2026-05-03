@@ -35,3 +35,16 @@ def test_bezier_curve_endpoints():
     assert pts[-1].x == pytest.approx(10)
     assert pts[-1].y == pytest.approx(0)
     assert len(pts) == 20
+
+def test_points_equal_within_tolerance():
+    from jeans_pattern.geometry import points_equal
+    a = Point(1.0, 2.0)
+    b = Point(1.0 + 5e-10, 2.0 - 5e-10)
+    assert a != b               # exact equality: different
+    assert points_equal(a, b)   # tolerance helper: same
+
+def test_points_equal_outside_tolerance():
+    from jeans_pattern.geometry import points_equal
+    a = Point(1.0, 2.0)
+    b = Point(1.0 + 1e-3, 2.0)
+    assert not points_equal(a, b)
