@@ -15,6 +15,15 @@ class PatternPiece:
             raise ValueError(
                 f"piece {self.name!r}: outline needs >=3 points, got {len(self.outline)}"
             )
+        # Reject self-intersecting polygons. Catches vertex-ordering bugs at
+        # construction time before they propagate to SVG/PDF rendering.
+        from shapely.geometry import Polygon
+        poly = Polygon([(p.x, p.y) for p in self.outline])
+        if not poly.is_simple:
+            raise ValueError(
+                f"piece {self.name!r}: outline is self-intersecting (non-simple polygon). "
+                f"Likely a vertex-ordering bug."
+            )
 
     def bbox(self) -> tuple[float, float, float, float]:
         xs = [p.x for p in self.outline]

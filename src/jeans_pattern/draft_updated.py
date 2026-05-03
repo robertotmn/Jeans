@@ -55,16 +55,19 @@ class UpdatedFront:
         return self.new_H
 
     def outline_polygon(self) -> list[Point]:
-        """Updated front outline (simple polygon, 8 vertices).
+        """Updated front outline (simple polygon, 8 vertices), in clockwise order:
+        new_I -> new_H (waist) -> G (hip outseam) -> P_new (knee out) ->
+        M (hem out) -> L (hem in) -> O (knee in) -> B (crotch).
+        Closes B->new_I as the fly chord.
 
         Same vertex count as basic — AA is intentionally excluded from the
         polygon because as a fly-axis waypoint (x=0, below F) it would create
-        a self-intersection with the closing chord B->new_H. AA is preserved
-        as a field so post-MVP Bezier rendering can sample I->AA->G as a
-        smooth curve replacing the straight I->G segment.
+        a self-intersection with the closing chord B->new_I. AA is preserved
+        as a field so post-MVP Bezier rendering can sample new_I->AA->G as a
+        smooth curve replacing the straight new_I->G segment.
         """
         b = self.base
-        return [self.new_H, self.new_I, b.G, self.P_new, b.M, b.L, b.O, b.B]
+        return [self.new_I, self.new_H, b.G, self.P_new, b.M, b.L, b.O, b.B]
 
 
 @dataclass(frozen=True)

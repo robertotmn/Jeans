@@ -12,12 +12,12 @@ class FrontPoints:
     O: Point; P: Point
 
     def outline_polygon(self) -> list[Point]:
-        """Outline finale del front (basic):
-        H -> I (waist) -> G (fly top) -> P (knee out) -> M (hem out)
+        """Outline finale del front (basic), in clockwise order:
+        I -> H (waist) -> G (hip outseam) -> P (knee out) -> M (hem out)
         -> L (hem in) -> O (knee in) -> B (crotch).
-        Closes B->H as a straight chord (the hip curve will be added in the updated 501 draft).
+        Closes B->I as the fly chord (the fly curve will be added post-MVP).
         """
-        return [self.H, self.I, self.G, self.P, self.M, self.L, self.O, self.B]
+        return [self.I, self.H, self.G, self.P, self.M, self.L, self.O, self.B]
 
 def build_basic_front(m: Measurements) -> FrontPoints:
     rise = m.rise_mm
