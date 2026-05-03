@@ -60,3 +60,10 @@ def bezier_curve(p0: Point, p1: Point, p2: Point, n: int = 32) -> list[Point]:
         y = u * u * p0.y + 2 * u * t * p1.y + t * t * p2.y
         pts.append(Point(x, y))
     return pts
+
+
+def horizontal_line_through(y: float, span: float = 10000) -> tuple[Point, Point]:
+    """Return two points defining the infinite horizontal line at the given y.
+    `line_intersection` only needs the line direction; `span` keeps the points
+    clearly off-pattern. Used to find intersections with construction lines."""
+    return Point(-span, y), Point(span, y)

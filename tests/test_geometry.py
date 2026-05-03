@@ -48,3 +48,10 @@ def test_points_equal_outside_tolerance():
     a = Point(1.0, 2.0)
     b = Point(1.0 + 1e-3, 2.0)
     assert not points_equal(a, b)
+
+def test_horizontal_line_through():
+    from jeans_pattern.geometry import horizontal_line_through
+    p1, p2 = horizontal_line_through(50)
+    assert p1.y == 50
+    assert p2.y == 50
+    assert p1.x != p2.x

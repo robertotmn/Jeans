@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from .geometry import Point, square_out, line_intersection
+from .geometry import Point, square_out, line_intersection, horizontal_line_through
 from .measurements import Measurements
 
 INCH = 25.4
@@ -64,6 +64,9 @@ def build_basic_front(m: Measurements) -> FrontPoints:
 
 @dataclass
 class BackPoints:
+    """Back draft points. Field order is pair-wise: each (front-anchor, back-derived)
+    pair groups the front point that's reused with the back-side point that extends it.
+    Pairs: B-R, G-S, I-X, Y-Z, P-T, O-U, M-V, L-W."""
     B: Point; R: Point; G: Point; S: Point
     I: Point; X: Point; Y: Point; Z: Point
     P: Point; T: Point; O: Point; U: Point
@@ -73,16 +76,18 @@ class BackPoints:
         """Outline finale del back (basic):
         Y -> Z (waist) -> S (seat) -> T (knee out) -> V (hem out)
         -> W (hem in) -> U (knee in) -> R (back crotch).
-        Closes R->Y as a straight chord (the seat curve will be added in the updated draft).
+        Both Z->S and R->Y are straight chords here; the updated draft (Task 6)
+        replaces Z->S with the seat curve and inseam V->T->S with curve geometry.
         """
         return [self.Y, self.Z, self.S, self.T, self.V, self.W, self.U, self.R]
 
 
-def build_basic_back(m: Measurements) -> BackPoints:
+def build_basic_back(m: Measurements, front: FrontPoints | None = None) -> BackPoints:
     """Basic back draft (PDF pp. 10-14). Derived from the front via 1" outward
     shifts plus G-S = seat/16 extension. Updated 501 silhouette adds I-X
     extension; here X = I (no extension)."""
-    front = build_basic_front(m)
+    if front is None:
+        front = build_basic_front(m)
     one_inch = 1 * INCH
 
     # 1" outward shifts. Convention: the back lives in the same coordinate
@@ -106,9 +111,8 @@ def build_basic_back(m: Measurements) -> BackPoints:
     X = front.I
 
     # Y = intersezione della linea outseam estesa W-R con la waist line (y = A.y)
-    waist_left = Point(-10000, front.A.y)
-    waist_right = Point(10000, front.A.y)
-    Y = line_intersection(W, R, waist_left, waist_right)
+    waist_p1, waist_p2 = horizontal_line_through(front.A.y)
+    Y = line_intersection(W, R, waist_p1, waist_p2)
 
     # Z = waist/4 + 2" da I sulla waist line (verso destra = outseam side)
     Z = square_out(front.I, m.waist_mm / 4 + 2 * INCH, "right")

@@ -1,5 +1,5 @@
 import pytest
-from jeans_pattern.draft_basic import build_basic_front, FrontPoints
+from jeans_pattern.draft_basic import build_basic_front, build_basic_back, FrontPoints, BackPoints
 
 INCH = 25.4
 
@@ -60,20 +60,17 @@ def test_matches_excel_calculator(default_measurements):
 
 
 def test_back_extension_distances(default_measurements):
-    from jeans_pattern.draft_basic import build_basic_back
     back = build_basic_back(default_measurements)
-    INCH_ = 25.4
     # R = B shifted 1" outward (left, away from front outseam side)
     assert (back.R.y - back.B.y) == pytest.approx(0)
-    assert abs(back.R.x - back.B.x) == pytest.approx(1 * INCH_)
+    assert abs(back.R.x - back.B.x) == pytest.approx(1 * INCH)
     # G-S = seat/16 (extension oltre G verso outseam = right)
-    assert (back.S.x - back.G.x) == pytest.approx(44.0 / 16 * INCH_)
+    assert (back.S.x - back.G.x) == pytest.approx(44.0 / 16 * INCH)
     # Z = I + (waist/4 + 2") (Excel formula B18: =D2+2 = waist/4 + 2)
-    assert (back.Z.x - back.I.x) == pytest.approx(34.5 / 4 * INCH_ + 2 * INCH_)
+    assert (back.Z.x - back.I.x) == pytest.approx(34.5 / 4 * INCH + 2 * INCH)
 
 
 def test_back_outline_closed(default_measurements):
-    from jeans_pattern.draft_basic import build_basic_back
     back = build_basic_back(default_measurements)
     poly = back.outline_polygon()
     assert len(poly) >= 6
@@ -82,15 +79,14 @@ def test_back_outline_closed(default_measurements):
 
 def test_back_excel_calculator_values(default_measurements):
     """Pin back-draft mm values vs Excel calculator with default inputs."""
-    from jeans_pattern.draft_basic import build_basic_back
     b = build_basic_back(default_measurements)
     # G-S extension
-    assert (b.S.x - b.G.x) == pytest.approx(44.0 / 16 * 25.4)   # = 69.85 mm
+    assert (b.S.x - b.G.x) == pytest.approx(44.0 / 16 * INCH)   # = 69.85 mm
     # Y-Z = waist/4 + 2"
-    assert (b.Z.x - b.I.x) == pytest.approx(34.5 / 4 * 25.4 + 2 * 25.4)  # 269.875 mm
+    assert (b.Z.x - b.I.x) == pytest.approx(34.5 / 4 * INCH + 2 * INCH)  # 269.875 mm
     # Outward translations 1" = 25.4 mm
-    assert abs(b.R.x - b.B.x) == pytest.approx(25.4)
-    assert abs(b.U.x - b.O.x) == pytest.approx(25.4)
-    assert abs(b.T.x - b.P.x) == pytest.approx(25.4)
-    assert abs(b.V.x - b.M.x) == pytest.approx(25.4)
-    assert abs(b.W.x - b.L.x) == pytest.approx(25.4)
+    assert abs(b.R.x - b.B.x) == pytest.approx(INCH)
+    assert abs(b.U.x - b.O.x) == pytest.approx(INCH)
+    assert abs(b.T.x - b.P.x) == pytest.approx(INCH)
+    assert abs(b.V.x - b.M.x) == pytest.approx(INCH)
+    assert abs(b.W.x - b.L.x) == pytest.approx(INCH)
