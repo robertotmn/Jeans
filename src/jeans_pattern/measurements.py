@@ -1,6 +1,8 @@
 from dataclasses import dataclass
+from .constants import INCH_TO_MM
 
-INCH_TO_MM = 25.4
+# Re-export for backward compatibility (existing imports use jeans_pattern.measurements.INCH_TO_MM)
+__all__ = ["Measurements", "INCH_TO_MM"]
 
 @dataclass(frozen=True)
 class Measurements:

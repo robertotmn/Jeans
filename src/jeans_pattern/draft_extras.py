@@ -14,10 +14,7 @@ Seam allowances per PDF p.4: 3/8" everywhere except center back / yoke seam (5/8
 from .geometry import Point
 from .pattern import PatternPiece
 from .measurements import Measurements
-
-INCH = 25.4
-SA_3_8_IN_MM = 0.375 * INCH    # 9.525 mm
-SA_5_8_IN_MM = 0.625 * INCH    # 15.875 mm
+from .constants import INCH, SA_3_8_IN_MM, SA_5_8_IN_MM
 
 
 def _rect(x: float, y: float, w: float, h: float) -> list[Point]:

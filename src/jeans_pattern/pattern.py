@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 from .geometry import Point
+from .constants import SA_3_8_IN_MM
 
 @dataclass
 class PatternPiece:
@@ -7,7 +8,7 @@ class PatternPiece:
     outline: list[Point]                                  # poligono chiuso (no ripetere primo punto)
     construction_lines: list[list[Point]] = field(default_factory=list)
     labels: list[tuple[Point, str]] = field(default_factory=list)
-    seam_allowance_mm: float = 9.525                       # 3/8" default
+    seam_allowance_mm: float = SA_3_8_IN_MM                # 3/8" default
 
     def bbox(self) -> tuple[float, float, float, float]:
         xs = [p.x for p in self.outline]
