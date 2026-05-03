@@ -35,3 +35,25 @@ def test_front_outline_is_closed_polygon(default_measurements):
     poly = front.outline_polygon()
     assert len(poly) >= 6
     assert poly[0] != poly[-1]   # convenzione: poligono chiuso senza ripetere
+
+def test_matches_excel_calculator(default_measurements):
+    """Pin absolute mm values to catch unit-conversion bugs (cm/mm/inch swaps,
+    INCH typos, formula transcription errors). Values derived from the Excel
+    calculator with default inputs (waist=34.5", seat=44", rise=9.75",
+    knee=10.375", bottom=9.75", length=34")."""
+    f = build_basic_front(default_measurements)
+    # Vertical axis (mm)
+    assert f.A.y == pytest.approx(0)
+    assert f.B.y == pytest.approx(247.65)        # rise
+    assert f.C.y == pytest.approx(1123.95)       # rise + (length + 0.5")
+    assert f.E.y == pytest.approx(1149.35)       # + 1" hem
+    assert f.D.y == pytest.approx(635.0)         # knee line: rise + (length+0.5")/2 - 2"
+    # Horizontal seat / waist (mm)
+    assert f.F.x == pytest.approx(279.4)         # seat/4
+    assert f.G.x == pytest.approx(330.2)         # F + 2"
+    assert f.I.x == pytest.approx(279.4)         # above F
+    assert f.H.x == pytest.approx(511.175)       # I + waist/4 + 0.5"
+    # Hem distribution (mm)
+    assert f.K.x == pytest.approx(165.1)         # midpoint B-G on hip line
+    assert f.N.x == pytest.approx(165.1)         # below K
+    assert (f.M.x - f.L.x) == pytest.approx(247.65)  # bottom width

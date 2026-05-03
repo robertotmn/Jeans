@@ -14,7 +14,8 @@ class FrontPoints:
     def outline_polygon(self) -> list[Point]:
         """Outline finale del front (basic):
         H -> I (waist) -> G (fly top) -> P (knee out) -> M (hem out)
-        -> L (hem in) -> O (knee in) -> B (crotch) -> H (hip curve via close)
+        -> L (hem in) -> O (knee in) -> B (crotch).
+        Closes B->H as a straight chord (the hip curve will be added in the updated 501 draft).
         """
         return [self.H, self.I, self.G, self.P, self.M, self.L, self.O, self.B]
 
