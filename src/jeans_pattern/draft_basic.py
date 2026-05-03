@@ -60,3 +60,62 @@ def build_basic_front(m: Measurements) -> FrontPoints:
 
     return FrontPoints(A=A, B=B, C=C, D=D, E=E, F=F, G=G, H=H, I=I,
                        K=K, N=N, L=L, M=M, O=O, P=P)
+
+
+@dataclass
+class BackPoints:
+    B: Point; R: Point; G: Point; S: Point
+    I: Point; X: Point; Y: Point; Z: Point
+    P: Point; T: Point; O: Point; U: Point
+    M: Point; V: Point; L: Point; W: Point
+
+    def outline_polygon(self) -> list[Point]:
+        """Outline finale del back (basic):
+        Y -> Z (waist) -> S (seat) -> T (knee out) -> V (hem out)
+        -> W (hem in) -> U (knee in) -> R (back crotch).
+        Closes R->Y as a straight chord (the seat curve will be added in the updated draft).
+        """
+        return [self.Y, self.Z, self.S, self.T, self.V, self.W, self.U, self.R]
+
+
+def build_basic_back(m: Measurements) -> BackPoints:
+    """Basic back draft (PDF pp. 10-14). Derived from the front via 1" outward
+    shifts plus G-S = seat/16 extension. Updated 501 silhouette adds I-X
+    extension; here X = I (no extension)."""
+    front = build_basic_front(m)
+    one_inch = 1 * INCH
+
+    # 1" outward shifts. Convention: the back lives in the same coordinate
+    # plane as the front (mirrored conceptually). The 1" shifts move points
+    # OFF the front along directions that grow the back's outline:
+    #   B -> R: 1" left  (back-crotch point sticks out past the front fly axis)
+    #   O -> U: 1" left  (knee inseam)
+    #   P -> T: 1" right (knee outseam)
+    #   M -> V: 1" right (hem outseam)
+    #   L -> W: 1" left  (hem inseam)
+    R = square_out(front.B, one_inch, "left")
+    U = square_out(front.O, one_inch, "left")
+    T = square_out(front.P, one_inch, "right")
+    V = square_out(front.M, one_inch, "right")
+    W = square_out(front.L, one_inch, "left")
+
+    # G-S = seat/16, extension oltre G sulla linea hip (verso outseam = right)
+    S = square_out(front.G, m.seat_mm / 16, "right")
+
+    # I-X (basic): X = I (no extension; updated 501 sets I-X = seat/10)
+    X = front.I
+
+    # Y = intersezione della linea outseam estesa W-R con la waist line (y = A.y)
+    waist_left = Point(-10000, front.A.y)
+    waist_right = Point(10000, front.A.y)
+    Y = line_intersection(W, R, waist_left, waist_right)
+
+    # Z = waist/4 + 2" da I sulla waist line (verso destra = outseam side)
+    Z = square_out(front.I, m.waist_mm / 4 + 2 * INCH, "right")
+
+    return BackPoints(
+        B=front.B, R=R, G=front.G, S=S,
+        I=front.I, X=X, Y=Y, Z=Z,
+        P=front.P, T=T, O=front.O, U=U,
+        M=front.M, V=V, L=front.L, W=W,
+    )
