@@ -1,0 +1,94 @@
+"""Main application window: form on the left, preview on the right, export buttons."""
+from PySide6 import QtWidgets, QtCore
+from PySide6.QtWidgets import QFileDialog, QMessageBox
+
+from jeans_pattern.pattern import build_full_pattern
+from jeans_pattern.export_svg import pattern_to_svg
+from jeans_pattern.export_pdf import pattern_to_pdf
+
+from .measurement_form import MeasurementForm
+from .preview_widget import PreviewWidget
+
+
+class MainWindow(QtWidgets.QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Selvedge Jeans Pattern Maker")
+        self.resize(1200, 800)
+
+        central = QtWidgets.QWidget()
+        self.setCentralWidget(central)
+        h = QtWidgets.QHBoxLayout(central)
+
+        # ----- Left column: form + buttons --------------------------------
+        left = QtWidgets.QVBoxLayout()
+        self.form = MeasurementForm()
+        left.addWidget(self.form)
+
+        btn_pdf_single = QtWidgets.QPushButton("Esporta PDF (singola pagina)")
+        btn_pdf_tiled = QtWidgets.QPushButton("Esporta PDF (tile A4)")
+        btn_svg = QtWidgets.QPushButton("Esporta SVG")
+        left.addWidget(btn_pdf_single)
+        left.addWidget(btn_pdf_tiled)
+        left.addWidget(btn_svg)
+        left.addStretch()
+
+        left_widget = QtWidgets.QWidget()
+        left_widget.setLayout(left)
+        left_widget.setMaximumWidth(400)
+        h.addWidget(left_widget)
+
+        # ----- Right column: SVG preview ----------------------------------
+        self.preview = PreviewWidget()
+        h.addWidget(self.preview, stretch=1)
+
+        # ----- Wiring ----------------------------------------------------
+        self.form.measurements_changed.connect(self._refresh_preview)
+        btn_pdf_single.clicked.connect(lambda: self._export_pdf("single"))
+        btn_pdf_tiled.clicked.connect(lambda: self._export_pdf("tiled_a4"))
+        btn_svg.clicked.connect(self._export_svg)
+
+        # Initial preview after the event loop starts
+        QtCore.QTimer.singleShot(100, self._refresh_preview)
+
+    # ----- Internal helpers ----------------------------------------------
+
+    def _build_pattern(self):
+        m = self.form.to_measurements()
+        return build_full_pattern(m, style=self.form.style())
+
+    def _refresh_preview(self) -> None:
+        try:
+            pat = self._build_pattern()
+            svg = pattern_to_svg(pat)
+            self.preview.update_svg(svg)
+        except Exception as e:
+            QMessageBox.warning(self, "Errore preview", str(e))
+
+    def _export_pdf(self, mode: str) -> None:
+        path, _ = QFileDialog.getSaveFileName(
+            self, "Salva PDF", "jeans_pattern.pdf", "PDF (*.pdf)"
+        )
+        if not path:
+            return
+        try:
+            pdf = pattern_to_pdf(self._build_pattern(), mode=mode, calibration=True)
+            with open(path, "wb") as f:
+                f.write(pdf)
+            QMessageBox.information(self, "Esportato", f"Salvato:\n{path}")
+        except Exception as e:
+            QMessageBox.critical(self, "Errore export", str(e))
+
+    def _export_svg(self) -> None:
+        path, _ = QFileDialog.getSaveFileName(
+            self, "Salva SVG", "jeans_pattern.svg", "SVG (*.svg)"
+        )
+        if not path:
+            return
+        try:
+            svg = pattern_to_svg(self._build_pattern())
+            with open(path, "wb") as f:
+                f.write(svg)
+            QMessageBox.information(self, "Esportato", f"Salvato:\n{path}")
+        except Exception as e:
+            QMessageBox.critical(self, "Errore export", str(e))
