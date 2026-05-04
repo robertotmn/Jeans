@@ -64,72 +64,72 @@ def build_button_fly(m: Measurements) -> dict[str, PatternPiece]:
 def build_front_pocket(m: Measurements) -> dict[str, PatternPiece]:
     """Front pocket bag (12" deep) + pocket facing (4" deep).
 
-    Pocket bag (PDF page 17): 12" deep, "one piece and folded down the center".
-    Shape: U-shape with a CONCAVE cutout at the top-left for the pocket opening
-    (matches the pocket-mouth curve on the front piece), a square top-right
-    corner, and a rounded bottom. A vertical dashed construction line down the
-    middle marks the fold.
+    Pocket bag (PDF page 17): 12" deep, "one piece and folded down the centre".
+    Shape: an egg / horseshoe with a CONCAVE cutout at the top-left for the
+    pocket opening, a square top-right corner, and a continuous rounded bottom.
+    A vertical dashed construction line down the middle marks the fold.
 
     Width: waist/4 + 1" (slightly wider than the front piece's pocket-opening
     span so the bag clears the fly).
-    Concave cutout: 1-1/8" wide x 1-1/8" tall (PDF page 17, "1-1/8 inch over
-    and 1-1/8 inch down from the pocket curve").
+    Concave cutout: roughly 30% wide x 25% tall (mirrors the pocket-mouth curve
+    drawn on the front piece in PDF page 17).
     """
-    from .geometry import bezier_curve
+    from .geometry import bezier_curve, cubic_bezier
 
     width = m.waist_mm / 4 + 1 * INCH
     height = 12 * INCH
-    cut_w = 1.125 * INCH         # pocket-opening cutout, horizontal extent
-    cut_h = 1.125 * INCH         # pocket-opening cutout, vertical extent
-    side_h = height * 0.55       # vertical straight portion of the side seams
-    bottom_radius = width * 0.45 # rounding of the bottom corners
+    cut_w = width * 0.35        # pocket-opening cutout, horizontal extent
+    cut_h = height * 0.28       # pocket-opening cutout, vertical extent
+    side_top_y = cut_h          # left side starts where the cutout ends
+    side_bottom_y = height * 0.45  # where the side seam transitions into the
+                                # rounded bottom
+    # Bezier approximation of a quarter-circle ("kappa" for cubic Bezier arcs).
+    KAPPA = 0.5523
 
-    # Outline (CW from top of pocket-opening cutout):
-    #   (cut_w, 0) -> (width, 0)                top edge (right of cutout)
-    #   (width, 0) -> (width, side_h)           right side straight
-    #   convex bottom-right corner -> (width - bottom_radius, height)
-    #   bottom edge -> (bottom_radius, height)
-    #   convex bottom-left corner -> (0, side_h)
-    #   left side straight -> (0, cut_h)
-    #   concave cutout -> (cut_w, 0)
+    # Outline (CW from the top of the pocket-opening cutout):
     outline: list[Point] = []
+
+    # Top edge (right of cutout) and right side straight down
     outline.append(Point(cut_w, 0))
     outline.append(Point(width, 0))
-    outline.append(Point(width, side_h))
+    outline.append(Point(width, side_bottom_y))
 
-    # Bottom-right convex corner: quadratic Bezier with control at the
-    # would-be sharp corner (width, height).
-    br = bezier_curve(
-        Point(width, side_h),
+    # Continuous rounded bottom: cubic Bezier from (width, side_bottom_y) down
+    # to (width / 2, height), then a second cubic to (0, side_bottom_y). Using
+    # cubic gives a softer "egg" curve than a quarter-circle approximation.
+    bottom_right = cubic_bezier(
+        Point(width, side_bottom_y),
         Point(width, height),
-        Point(width - bottom_radius, height),
-        n=12,
+        Point(width * 0.7, height),
+        Point(width / 2, height),
+        n=14,
     )
-    outline.extend(br[1:])
+    outline.extend(bottom_right[1:])
 
-    outline.append(Point(bottom_radius, height))
-
-    # Bottom-left convex corner.
-    bl = bezier_curve(
-        Point(bottom_radius, height),
+    bottom_left = cubic_bezier(
+        Point(width / 2, height),
+        Point(width * 0.3, height),
         Point(0, height),
-        Point(0, side_h),
-        n=12,
+        Point(0, side_bottom_y),
+        n=14,
     )
-    outline.extend(bl[1:])
+    outline.extend(bottom_left[1:])
 
-    outline.append(Point(0, cut_h))
+    # Left side straight up to the start of the cutout
+    outline.append(Point(0, side_top_y))
 
-    # Concave cutout at top-left: quadratic Bezier with control at the corner
-    # (0, 0) — bows the curve into the missing-corner region so the polygon
-    # excludes the corner just like a real pocket opening.
-    cut = bezier_curve(
-        Point(0, cut_h),
-        Point(0, 0),
+    # Concave cutout at top-left: quarter-elliptic arc from (0, cut_h) up-right
+    # to (cut_w, 0), centred at the would-be inner corner (cut_w, cut_h). The
+    # cubic Bezier with kappa-scaled controls reproduces the smooth pocket
+    # mouth drawn in the PDF reference and matches the reference image.
+    cutout = cubic_bezier(
+        Point(0, side_top_y),
+        Point(0, cut_h * (1 - KAPPA)),
+        Point(cut_w * (1 - KAPPA), 0),
         Point(cut_w, 0),
-        n=12,
+        n=14,
     )
-    outline.extend(cut[1:-1])
+    outline.extend(cutout[1:-1])
 
     # Construction line: vertical fold down the centre.
     fold_line = [Point(width / 2, 0), Point(width / 2, height)]
@@ -141,20 +141,21 @@ def build_front_pocket(m: Measurements) -> dict[str, PatternPiece]:
         labels=[(Point(width / 2, height / 2), "POCKET BAG x 2 (fold on dashed)")],
     )
 
-    # Pocket facing: same overall outline but only 4" deep — faces the outside
-    # of the bag where it shows through the pocket opening.
+    # Pocket facing: same overall outline at the top but only 4" deep — faces
+    # the outside of the bag where it shows through the pocket opening.
     facing_h = 4 * INCH
     facing_outline: list[Point] = []
     facing_outline.append(Point(cut_w, 0))
     facing_outline.append(Point(width, 0))
     facing_outline.append(Point(width, facing_h))
     facing_outline.append(Point(0, facing_h))
-    facing_outline.append(Point(0, cut_h))
-    facing_cut = bezier_curve(
-        Point(0, cut_h),
-        Point(0, 0),
+    facing_outline.append(Point(0, side_top_y))
+    facing_cut = cubic_bezier(
+        Point(0, side_top_y),
+        Point(0, cut_h * (1 - KAPPA)),
+        Point(cut_w * (1 - KAPPA), 0),
         Point(cut_w, 0),
-        n=12,
+        n=14,
     )
     facing_outline.extend(facing_cut[1:-1])
 
