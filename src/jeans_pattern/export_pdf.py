@@ -94,6 +94,27 @@ def _draw_pieces(c, placed, x_origin_mm: float, y_origin_mm: float):
         )
         c.setFillColorRGB(0, 0, 0)
 
+        # Letter-style landmark labels (length <= 3): red dot + small text
+        c.setFont("Helvetica", 6)
+        for pt, text in piece.labels:
+            if len(text) <= 3:
+                px = (pt.x + ox + x_origin_mm) * mm
+                py = (-(pt.y + oy) + y_origin_mm) * mm
+                c.setFillColorRGB(1, 0, 0)
+                c.circle(px, py, 0.8 * mm, stroke=0, fill=1)
+                c.drawString(px + 1.5 * mm, py + 0.5 * mm, text)
+                c.setFillColorRGB(0, 0, 0)
+            else:
+                # Long labels rendered larger, in black
+                c.setFillColorRGB(0, 0, 0)
+                c.setFont("Helvetica", 8)
+                c.drawString(
+                    (pt.x + ox + x_origin_mm) * mm,
+                    (-(pt.y + oy) + y_origin_mm) * mm,
+                    text,
+                )
+                c.setFont("Helvetica", 6)
+
 
 def _draw_calibration(c, x_mm: float, y_mm: float):
     """Draw a 100x100 mm calibration square with a label at (x_mm, y_mm)

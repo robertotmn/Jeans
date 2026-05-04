@@ -65,15 +65,20 @@ def build_full_pattern(m: "Measurements", style: str = "updated") -> Pattern:
     else:
         raise ValueError(f"unknown style {style!r}; expected 'basic' or 'updated'")
 
+    front_labels = [(pt, name) for name, pt in front_pts.labeled_points().items()]
+    front_labels.append((front_pts.K, "FRONT x 2 (mirror)"))
     front_piece = PatternPiece(
         name="front",
         outline=front_pts.outline_polygon(),
-        labels=[(front_pts.K, "FRONT x 2 (mirror)")],
+        labels=front_labels,
     )
+
+    back_labels = [(pt, name) for name, pt in back_pts.labeled_points().items()]
+    back_labels.append((back_pts.G, "BACK x 2 (mirror)"))
     back_piece = PatternPiece(
         name="back",
         outline=back_pts.outline_polygon(),
-        labels=[(back_pts.G, "BACK x 2 (mirror)")],
+        labels=back_labels,
     )
 
     fly = build_button_fly(m)

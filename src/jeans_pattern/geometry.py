@@ -67,3 +67,60 @@ def horizontal_line_through(y: float, span: float = 10000) -> tuple[Point, Point
     `line_intersection` only needs the line direction; `span` keeps the points
     clearly off-pattern. Used to find intersections with construction lines."""
     return Point(-span, y), Point(span, y)
+
+
+def curve_segment(p_from: Point, p_to: Point, bow_mm: float, perp_x: float, perp_y: float, n: int = 16) -> list[Point]:
+    """Quadratic Bezier curve from p_from to p_to, with control point at the chord midpoint
+    offset along the unit vector (perp_x, perp_y) by bow_mm.
+
+    Returns sampled points INCLUDING both endpoints.
+
+    The caller chooses (perp_x, perp_y) explicitly to avoid ambiguity about
+    'outward' vs 'inward' direction (which depends on polygon orientation).
+    Pass the unit vector as you intend it: e.g. (1, 0) bows the curve in +x,
+    (0, -1) bows in -y. Magnitude doesn't matter (vector is normalized).
+    """
+    norm = (perp_x ** 2 + perp_y ** 2) ** 0.5
+    if norm < 1e-9:
+        raise ValueError("perp vector must be non-zero")
+    ux = perp_x / norm
+    uy = perp_y / norm
+    midx = (p_from.x + p_to.x) / 2
+    midy = (p_from.y + p_to.y) / 2
+    control = Point(midx + ux * bow_mm, midy + uy * bow_mm)
+    return bezier_curve(p_from, control, p_to, n)
+
+
+def curve_through(p_from: Point, control: Point, p_to: Point, n: int = 16) -> list[Point]:
+    """Wrapper: explicit control point. Use when you have a meaningful waypoint
+    (like F or AA in the jeans draft) you want the curve to bend toward."""
+    return bezier_curve(p_from, control, p_to, n)
+
+
+def curved_edge(p_from: Point, p_to: Point, bow_mm: float, side: str = "right", n: int = 20) -> list[Point]:
+    """Sample a quadratic Bezier from p_from to p_to that bulges perpendicular
+    to the chord by `bow_mm`. `side` selects the side of the chord:
+    - "right": rotate the chord direction 90 degrees clockwise (in y-down coords,
+      this is "to the geographic right of travel direction").
+    - "left": rotate 90 degrees counter-clockwise.
+
+    Returns n points INCLUDING both endpoints. Used to replace straight outline
+    edges with smooth curves (hip curve, seat curve, fly, hollow inseam, etc.).
+    """
+    if bow_mm == 0:
+        return [p_from, p_to]
+    dx = p_to.x - p_from.x
+    dy = p_to.y - p_from.y
+    norm = (dx * dx + dy * dy) ** 0.5
+    if norm < 1e-9:
+        return [p_from, p_to]
+    if side == "right":
+        nx, ny = dy / norm, -dx / norm
+    elif side == "left":
+        nx, ny = -dy / norm, dx / norm
+    else:
+        raise ValueError(f"unknown side {side!r}; expected 'right' or 'left'")
+    midx = (p_from.x + p_to.x) / 2
+    midy = (p_from.y + p_to.y) / 2
+    control = Point(midx + nx * bow_mm, midy + ny * bow_mm)
+    return bezier_curve(p_from, control, p_to, n)

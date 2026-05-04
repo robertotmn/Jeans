@@ -60,11 +60,25 @@ def pattern_to_svg(pattern: Pattern, gap_mm: float = 30.0) -> bytes:
 
         # Labels (text annotations on the piece)
         for pt, text in piece.labels:
-            dwg.add(dwg.text(
-                text,
-                insert=(pt.x + ox, pt.y + oy),
-                font_size="6",
-            ))
+            x = pt.x + ox
+            y = pt.y + oy
+            # Short letter-style labels get a marker dot
+            if len(text) <= 3:
+                dwg.add(dwg.circle(center=(x, y), r=1.0, fill="red", stroke="none"))
+                # Offset the text slightly so it doesn't overlap the dot
+                dwg.add(dwg.text(
+                    text,
+                    insert=(x + 2, y - 2),
+                    font_size="6",
+                    fill="red",
+                ))
+            else:
+                # Long descriptive labels (e.g. "FRONT x 2 (mirror)") rendered as before
+                dwg.add(dwg.text(
+                    text,
+                    insert=(x, y),
+                    font_size="6",
+                ))
 
         # Piece name as a label at the top of the bounding box
         x0, y0, x1, _y1 = piece.bbox()

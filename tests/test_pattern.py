@@ -55,6 +55,14 @@ def test_build_full_pattern_pieces_have_valid_outlines(default_measurements):
         assert y1 > y0, f"piece {piece.name} has zero height"
 
 
+def _descriptive_label(piece):
+    """Find the multi-word descriptive label (e.g. 'FRONT x 2 (mirror)') among
+    a piece's labels. Letter-style landmarks are short identifiers (A, B, P_new,
+    T_new, etc.); the descriptive label is the multi-word one with spaces and
+    is positioned inside the outline."""
+    return next((pt, txt) for pt, txt in piece.labels if " " in txt)
+
+
 def test_front_label_inside_outline_basic(default_measurements):
     """The 'FRONT' label is positioned at K. Verify K falls inside the front outline."""
     from shapely.geometry import Polygon, Point as ShapelyPoint
@@ -62,7 +70,7 @@ def test_front_label_inside_outline_basic(default_measurements):
     pat = build_full_pattern(default_measurements, style="basic")
     front = next(p for p in pat if p.name == "front")
     poly = Polygon([(p.x, p.y) for p in front.outline])
-    label_point, _label_text = front.labels[0]
+    label_point, _label_text = _descriptive_label(front)
     assert poly.contains(ShapelyPoint(label_point.x, label_point.y)), \
         f"front label at {label_point} falls outside the outline"
 
@@ -73,7 +81,7 @@ def test_front_label_inside_outline_updated(default_measurements):
     pat = build_full_pattern(default_measurements, style="updated")
     front = next(p for p in pat if p.name == "front")
     poly = Polygon([(p.x, p.y) for p in front.outline])
-    label_point, _ = front.labels[0]
+    label_point, _ = _descriptive_label(front)
     assert poly.contains(ShapelyPoint(label_point.x, label_point.y)), \
         f"updated front label at {label_point} falls outside the outline"
 
@@ -84,7 +92,7 @@ def test_back_label_inside_outline_updated(default_measurements):
     pat = build_full_pattern(default_measurements, style="updated")
     back = next(p for p in pat if p.name == "back")
     poly = Polygon([(p.x, p.y) for p in back.outline])
-    label_point, _ = back.labels[0]
+    label_point, _ = _descriptive_label(back)
     assert poly.contains(ShapelyPoint(label_point.x, label_point.y)), \
         f"updated back label at {label_point} falls outside the outline"
 

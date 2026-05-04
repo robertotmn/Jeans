@@ -55,3 +55,23 @@ def test_horizontal_line_through():
     assert p1.y == 50
     assert p2.y == 50
     assert p1.x != p2.x
+
+
+def test_curve_segment_bow():
+    from jeans_pattern.geometry import curve_segment, distance
+    a = Point(0, 0)
+    b = Point(100, 0)
+    pts = curve_segment(a, b, bow_mm=10, perp_x=0, perp_y=1, n=20)
+    assert pts[0] == Point(0, 0)
+    assert pts[-1].x == pytest.approx(100, abs=0.01)
+    assert pts[-1].y == pytest.approx(0, abs=0.01)
+    # Apex should be near (50, 5) - quadratic Bezier midpoint formula gives 5 (half the bow)
+    apex = pts[len(pts) // 2]
+    assert apex.y == pytest.approx(5.0, abs=0.5)
+
+
+def test_curve_through_explicit_control():
+    from jeans_pattern.geometry import curve_through
+    pts = curve_through(Point(0, 0), Point(50, 50), Point(100, 0), n=10)
+    assert pts[0] == Point(0, 0)
+    assert pts[-1] == Point(100, 0)
