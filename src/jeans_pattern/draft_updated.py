@@ -55,73 +55,127 @@ class UpdatedFront:
         return self.new_H
 
     def outline_polygon(self) -> list[Point]:
-        """Updated 501 front outline with curves:
-        - new_I -> new_H : slight downward curve on waist (~3mm)  -- PDF p.21 step 5
-        - new_H -> G : enhanced hip curve (~18mm bow)  -- PDF p.21 step 6
-        - G -> P_new : outseam (straight; perpendicular hem geometry handled by P_new shift)
-        - P_new -> M : outseam (straight)
-        - M -> L : hem (straight)
-        - L -> O : inseam, hem to knee (straight)
-        - O -> B : front thigh hollow (~19mm = 3/4")  -- PDF p.23 step 12
-        - B -> new_I : fly curve via AA  -- PDF p.21 step 7
+        """Updated 501 front outline (CW), drawn with C1-tangent cubic Bezier
+        curves so adjacent edges blend without visible kinks.
+
+        - new_I -> new_H : slight downward waist curve (~3mm)  -- PDF p.21 step 5
+        - new_H -> G    : enhanced hip curve, vertical at H, along outseam at G
+        - G -> P_new    : outseam (straight)
+        - P_new -> M    : outseam knee-to-hem (straight)
+        - M -> L        : hem (straight)
+        - L -> O        : inseam hem-to-knee (straight)
+        - O -> B        : front thigh hollow (3/4"), tangent-blended at O and B
+        - B -> new_I    : fly J-curve, tangent shared with thigh-hollow at B,
+                          tangent vertical at new_I to meet waist near-perpendicular
         """
-        from .geometry import curve_segment, curve_through, Point
+        from .geometry import cubic_with_tangents, curve_segment
         b = self.base
 
-        # Slight waist curve: new_I -> new_H, slight downward bow into polygon
-        # Direction: rightward (waist is horizontal). Down = +y. Polygon is below (high y).
-        # Bow into polygon = +y. Perpendicular direction (0, 1).
-        waist_curve = curve_segment(self.new_I, self.new_H, bow_mm=3.0,
-                                     perp_x=0, perp_y=1, n=12)
+        # Slight waist curve new_I -> new_H: kept as a shallow quadratic perp bow
+        # (tangents at the endpoints are essentially horizontal anyway, and 3mm
+        # of bow is small enough that a quadratic looks indistinguishable from a cubic).
+        waist_curve = curve_segment(
+            self.new_I, self.new_H,
+            bow_mm=3.0, perp_x=0, perp_y=1, n=12,
+        )
 
-        # Enhanced hip curve new_H -> G: outward bow rightward (+x perpendicular for clockwise outline)
-        chord_x = b.G.x - self.new_H.x
-        chord_y = b.G.y - self.new_H.y
-        hip_curve = curve_segment(self.new_H, b.G, bow_mm=18.0,
-                                   perp_x=chord_y, perp_y=-chord_x, n=16)
+        # Hip curve new_H -> G: tangent vertical at H (perpendicular to waist),
+        # tangent along outseam G->P_new at G (so hip-to-outseam transition is smooth).
+        outseam_dx = self.P_new.x - b.G.x
+        outseam_dy = self.P_new.y - b.G.y
+        hip_chord_len = ((b.G.x - self.new_H.x) ** 2 + (b.G.y - self.new_H.y) ** 2) ** 0.5
+        hip_curve = cubic_with_tangents(
+            self.new_H, b.G,
+            t_start=(0.0, 1.0),
+            t_end=(outseam_dx, outseam_dy),
+            alpha=hip_chord_len * 0.55,
+            beta=hip_chord_len * 0.30,
+            n=20,
+        )
 
-        # Front thigh hollow on inseam O -> B: bow INWARD (into polygon, +x).
-        # O is at (~18, 635), B is at (0, ~248). Going O -> B is up-and-left.
-        # Polygon is to the right of this direction (the leg body). Hollow = away from polygon = left.
-        # Wait: hollow is concave on the inseam, meaning the inseam curves INWARD toward the leg axis.
-        # The leg axis is to the right (positive x) of the inseam. So hollow bows the inseam to the
-        # right (+x), into the polygon. For motion O -> B (chord_x = -O.x, chord_y = B.y - O.y < 0),
-        # right of motion = (chord_y, -chord_x). chord_y < 0, -chord_x > 0, so right = (negative, positive)? Hmm.
-        # Let me just use +x explicitly:
-        thigh_hollow = curve_segment(self.O, b.B, bow_mm=19.05,  # 3/4"
-                                      perp_x=1, perp_y=0, n=16)
+        # The thigh hollow (O -> B) and the fly (B -> new_I) share a common
+        # tangent at B (G1), keeping the front-crotch transition smooth.
+        # Tangent at B points up-and-slightly-right (along the line O -> new_I).
+        tangent_B_dx = self.new_I.x - b.O.x
+        tangent_B_dy = self.new_I.y - b.O.y
 
-        # Fly curve B -> new_I: bows LEFTWARD (toward fly axis x=0) to give the
-        # natural J-shape. AA is preserved as a draft waypoint but is NOT used
-        # as the Bezier control point: AA sits BELOW B on the fly axis (y=AA.y
-        # > B.y), so a quadratic Bezier through it would dip below B and cross
-        # the thigh hollow near the crotch (self-intersection). Instead, bow
-        # perpendicular to the chord B -> new_I, on the polygon-outward side.
-        chord_x = self.new_I.x - b.B.x
-        chord_y = self.new_I.y - b.B.y
-        # Left-of-motion in y-down screen coords is (-chord_y, chord_x); for
-        # this CW outline going B -> new_I (up-right), that direction bows the
-        # curve up-and-right of the chord, hugging the J-shape outward.
-        fly_curve = curve_segment(b.B, self.new_I, bow_mm=15.0,
-                                   perp_x=-chord_y, perp_y=chord_x, n=24)
+        # Thigh hollow O -> B: tangent at O continues the straight inseam L->O;
+        # tangent at B is the shared tangent above.
+        inseam_dx = b.O.x - b.L.x
+        inseam_dy = b.O.y - b.L.y
+        thigh_chord_len = ((b.B.x - b.O.x) ** 2 + (b.B.y - b.O.y) ** 2) ** 0.5
+        thigh_hollow = cubic_with_tangents(
+            b.O, b.B,
+            t_start=(inseam_dx, inseam_dy),
+            t_end=(tangent_B_dx, tangent_B_dy),
+            alpha=thigh_chord_len * 0.30,
+            beta=thigh_chord_len * 0.30,
+            n=18,
+        )
+
+        # Fly J-curve B -> new_I: tangent at B continues the shared tangent;
+        # tangent at new_I is vertical (down into the curve) so the fly meets
+        # the waist near-perpendicular, like a real jeans front-crotch seam.
+        fly_chord_len = ((self.new_I.x - b.B.x) ** 2 + (self.new_I.y - b.B.y) ** 2) ** 0.5
+        fly_curve = cubic_with_tangents(
+            b.B, self.new_I,
+            t_start=(tangent_B_dx, tangent_B_dy),
+            t_end=(0.0, -1.0),
+            alpha=fly_chord_len * 0.50,
+            beta=fly_chord_len * 0.55,
+            n=24,
+        )
 
         outline = []
         outline.append(self.new_I)
-        # new_I -> new_H curve (waist)
         outline.extend(waist_curve[1:])
-        # new_H -> G curve (hip)
         outline.extend(hip_curve[1:])
-        # G -> P_new -> M -> L straight
         outline.append(self.P_new)
         outline.append(b.M)
         outline.append(b.L)
-        # L -> O straight
         outline.append(b.O)
-        # O -> B curve (thigh hollow)
         outline.extend(thigh_hollow[1:])
-        # B -> new_I curve via AA, drop first and last
         outline.extend(fly_curve[1:-1])
         return outline
+
+    def construction_lines(self) -> list[list[Point]]:
+        """Updated front construction lines: same skeleton as the basic front
+        plus the AA waypoint and the M-perpendicular that locates P_new."""
+        from .geometry import Point
+
+        b = self.base
+        right_edge = max(self.new_H.x, b.G.x, b.M.x) + 30
+        return [
+            # Vertical fly axis A-E
+            [b.A, b.E],
+            # Waist horizontal
+            [Point(b.A.x, b.A.y), Point(right_edge, b.A.y)],
+            # Hip / crotch horizontal at y=B.y
+            [Point(b.A.x, b.B.y), Point(right_edge, b.B.y)],
+            # Knee horizontal
+            [Point(b.A.x, b.D.y), Point(right_edge, b.D.y)],
+            # Hem horizontal
+            [Point(b.A.x, b.E.y), Point(right_edge, b.E.y)],
+            # F square-up (locates the basic I above F)
+            [b.F, b.I],
+            # F-AA fly waypoint (seat/16 below F on fly axis)
+            [b.F, self.AA],
+            # B-G hip-line segment
+            [b.B, b.G],
+            # K square-down (centerline of leg)
+            [b.K, b.N],
+            # B-L straight chord (locates O at knee)
+            [b.B, b.L],
+            # G-M straight chord (locates basic P at knee)
+            [b.G, b.M],
+            # I shift: original-I to new_I (visualises the 3/4" outseam-ward shift)
+            [b.I, self.new_I],
+            # H shift: original-H to new_H
+            [b.H, self.new_H],
+            # M-perpendicular up to knee line, then 2" along outseam to P_new
+            [b.M, Point(b.M.x, b.D.y)],
+            [Point(b.M.x, b.D.y), self.P_new],
+        ]
 
     def labeled_points(self) -> dict[str, Point]:
         labels = self.base.labeled_points()
@@ -157,34 +211,67 @@ class UpdatedBack:
         return self.new_Z
 
     def outline_polygon(self) -> list[Point]:
-        """Updated 501 back outline:
-        - new_Y -> new_Z : waist (straight)
-        - new_Z -> S : seat curve (~18mm outward bow)
-        - S -> T_new : outseam (straight)
-        - T_new -> V : outseam knee-to-hem (straight)
-        - V -> W : hem (straight)
-        - W -> U : inseam hem-to-knee (straight)
-        - U -> R : inseam thigh hollow ~25.4mm (1")  -- PDF p.23 step 12
-        - R -> new_Y : back-crotch curve (~22mm)
+        """Updated 501 back outline (CW), with C1-tangent cubic Bezier curves
+        on the seat, hollow inseam, and back-crotch.
+
+        - new_Y -> new_Z : waist (straight, raised through new_X)
+        - new_Z -> S     : seat curve, tangent along waist at Z, along outseam at S
+        - S -> T_new     : outseam (straight)
+        - T_new -> V     : outseam knee-to-hem (straight)
+        - V -> W         : hem (straight)
+        - W -> U         : inseam hem-to-knee (straight)
+        - U -> R         : hollow inseam (1"), C1 with W->U at U and shared tangent at R
+        - R -> new_Y     : back-crotch J-curve, tangent shared with hollow inseam at R,
+                           vertical at Y to meet the waist near-perpendicular
         """
-        from .geometry import curve_segment, Point
+        from .geometry import cubic_with_tangents
         b = self.base
 
-        chord_x = b.S.x - self.new_Z.x
-        chord_y = b.S.y - self.new_Z.y
-        seat_curve = curve_segment(self.new_Z, b.S, bow_mm=18.0,
-                                    perp_x=chord_y, perp_y=-chord_x, n=16)
+        # Seat curve new_Z -> S: tangent vertical at Z (sharp corner with waist),
+        # tangent along outseam S->T_new at S (smooth blend with outseam).
+        outseam_dx = self.T_new.x - b.S.x
+        outseam_dy = self.T_new.y - b.S.y
+        seat_chord_len = ((b.S.x - self.new_Z.x) ** 2 + (b.S.y - self.new_Z.y) ** 2) ** 0.5
+        seat_curve = cubic_with_tangents(
+            self.new_Z, b.S,
+            t_start=(0.0, 1.0),
+            t_end=(outseam_dx, outseam_dy),
+            alpha=seat_chord_len * 0.55,
+            beta=seat_chord_len * 0.35,
+            n=20,
+        )
 
-        # Inseam hollow U -> R: 1" = 25.4mm, bow LEFT of motion direction (away from polygon)
-        chord_x = b.R.x - b.U.x
-        chord_y = b.R.y - b.U.y
-        hollow_inseam = curve_segment(b.U, b.R, bow_mm=25.4,
-                                       perp_x=-chord_y, perp_y=chord_x, n=16)
+        # Shared tangent at R (G1) between hollow inseam and back-crotch curve.
+        # Direction: from U toward new_Y; it bisects the two segments visually.
+        tangent_R_dx = self.new_Y.x - b.U.x
+        tangent_R_dy = self.new_Y.y - b.U.y
 
-        chord_x = self.new_Y.x - b.R.x
-        chord_y = self.new_Y.y - b.R.y
-        crotch_curve = curve_segment(b.R, self.new_Y, bow_mm=22.0,
-                                      perp_x=-chord_y, perp_y=chord_x, n=20)
+        # Hollow inseam U -> R: tangent at U continues straight inseam W->U; tangent
+        # at R is the shared tangent.
+        inseam_dx = b.U.x - b.W.x
+        inseam_dy = b.U.y - b.W.y
+        hollow_chord_len = ((b.R.x - b.U.x) ** 2 + (b.R.y - b.U.y) ** 2) ** 0.5
+        hollow_inseam = cubic_with_tangents(
+            b.U, b.R,
+            t_start=(inseam_dx, inseam_dy),
+            t_end=(tangent_R_dx, tangent_R_dy),
+            alpha=hollow_chord_len * 0.30,
+            beta=hollow_chord_len * 0.30,
+            n=18,
+        )
+
+        # Back-crotch R -> new_Y: tangent at R is the shared tangent; tangent
+        # at new_Y is vertical (down into the curve), so the crotch meets the
+        # waist near-perpendicular for a natural top-of-yoke shape.
+        crotch_chord_len = ((self.new_Y.x - b.R.x) ** 2 + (self.new_Y.y - b.R.y) ** 2) ** 0.5
+        crotch_curve = cubic_with_tangents(
+            b.R, self.new_Y,
+            t_start=(tangent_R_dx, tangent_R_dy),
+            t_end=(0.0, -1.0),
+            alpha=crotch_chord_len * 0.55,
+            beta=crotch_chord_len * 0.45,
+            n=24,
+        )
 
         outline = []
         outline.append(self.new_Y)
@@ -197,6 +284,46 @@ class UpdatedBack:
         outline.extend(hollow_inseam[1:])
         outline.extend(crotch_curve[1:-1])
         return outline
+
+    def construction_lines(self) -> list[list[Point]]:
+        """Updated back construction lines: shows the raised waist line through
+        new_X and the V-perpendicular construction that locates T_new."""
+        from .geometry import Point
+
+        b = self.base
+        left_edge = min(self.new_Y.x, b.R.x, b.W.x) - 30
+        right_edge = max(self.new_Z.x, b.S.x, b.V.x) + 30
+        top_y = self.new_X.y
+        return [
+            # Original (basic) waist horizontal at y=A.y
+            [Point(left_edge, b.B.y - b.B.y), Point(right_edge, b.B.y - b.B.y)],
+            # Raised waist horizontal through new_X
+            [Point(left_edge, top_y), Point(right_edge, top_y)],
+            # Hip / crotch horizontal through B-G-S
+            [Point(left_edge, b.B.y), Point(right_edge, b.B.y)],
+            # Knee horizontal
+            [Point(left_edge, b.O.y), Point(right_edge, b.O.y)],
+            # Hem horizontal
+            [Point(left_edge, b.L.y), Point(right_edge, b.L.y)],
+            # Front fly axis (x=0) for reference
+            [Point(0, top_y), Point(0, b.L.y)],
+            # I-X raise (seat/10) – the 501 yoke addition
+            [b.I, self.new_X],
+            # 1" outward shifts shown as horizontal segments on hip/knee/hem
+            [b.B, b.R],
+            [b.G, b.S],
+            [b.O, b.U],
+            [b.P, b.T],
+            [b.L, b.W],
+            [b.M, b.V],
+            # W-R extended outseam-side reference (locates new_Y on the new waist)
+            [b.W, self.new_Y],
+            # Original Z position (on basic waist) -> new_Z (on raised waist)
+            [b.Z, self.new_Z],
+            # V-perpendicular up to knee, then 2" along outseam to T_new
+            [b.V, Point(b.V.x, b.O.y)],
+            [Point(b.V.x, b.O.y), self.T_new],
+        ]
 
     def labeled_points(self) -> dict[str, Point]:
         labels = self.base.labeled_points()

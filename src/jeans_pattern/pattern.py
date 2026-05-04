@@ -26,8 +26,15 @@ class PatternPiece:
             )
 
     def bbox(self) -> tuple[float, float, float, float]:
+        """Bounding box of the outline UNION the construction lines, so SVG/PDF
+        layout reserves enough room for dashed helper lines that extend past
+        the cut polygon (e.g. waist/hip/knee/hem horizontals)."""
         xs = [p.x for p in self.outline]
         ys = [p.y for p in self.outline]
+        for line in self.construction_lines:
+            for p in line:
+                xs.append(p.x)
+                ys.append(p.y)
         return (min(xs), min(ys), max(xs), max(ys))
 
 @dataclass
@@ -70,6 +77,7 @@ def build_full_pattern(m: "Measurements", style: str = "updated") -> Pattern:
     front_piece = PatternPiece(
         name="front",
         outline=front_pts.outline_polygon(),
+        construction_lines=front_pts.construction_lines(),
         labels=front_labels,
     )
 
@@ -78,6 +86,7 @@ def build_full_pattern(m: "Measurements", style: str = "updated") -> Pattern:
     back_piece = PatternPiece(
         name="back",
         outline=back_pts.outline_polygon(),
+        construction_lines=back_pts.construction_lines(),
         labels=back_labels,
     )
 

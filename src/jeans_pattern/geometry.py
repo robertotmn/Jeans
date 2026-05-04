@@ -62,6 +62,59 @@ def bezier_curve(p0: Point, p1: Point, p2: Point, n: int = 32) -> list[Point]:
     return pts
 
 
+def cubic_bezier(p0: Point, p1: Point, p2: Point, p3: Point, n: int = 24) -> list[Point]:
+    """Cubic Bezier sampled at n points (endpoints inclusive)."""
+    pts = []
+    for i in range(n):
+        t = i / (n - 1)
+        u = 1 - t
+        x = u**3 * p0.x + 3 * u*u * t * p1.x + 3 * u * t*t * p2.x + t**3 * p3.x
+        y = u**3 * p0.y + 3 * u*u * t * p1.y + 3 * u * t*t * p2.y + t**3 * p3.y
+        pts.append(Point(x, y))
+    return pts
+
+
+def unit_vector(dx: float, dy: float) -> tuple[float, float]:
+    """Normalize a 2D vector. Raises ValueError on near-zero input."""
+    norm = (dx * dx + dy * dy) ** 0.5
+    if norm < 1e-9:
+        raise ValueError("zero-length vector")
+    return dx / norm, dy / norm
+
+
+def cubic_with_tangents(
+    p_start: Point,
+    p_end: Point,
+    t_start: tuple[float, float],
+    t_end: tuple[float, float],
+    alpha: float | None = None,
+    beta: float | None = None,
+    n: int = 24,
+) -> list[Point]:
+    """Cubic Bezier from p_start to p_end with prescribed tangent directions.
+
+    t_start: vector pointing OUT of p_start along the curve (does not need to be unit).
+    t_end:   vector pointing INTO p_end (i.e. the direction the curve is traveling
+             as it arrives at p_end). Does not need to be unit.
+
+    The control points P1, P2 are placed along these tangents at distances
+    alpha (from p_start) and beta (from p_end). When alpha=beta=chord/3 the
+    curve has a moderate, natural-looking bow; larger values produce deeper
+    curves. Defaults to chord_length / 3 if not given.
+    """
+    chord_len = ((p_end.x - p_start.x) ** 2 + (p_end.y - p_start.y) ** 2) ** 0.5
+    if alpha is None:
+        alpha = chord_len / 3.0
+    if beta is None:
+        beta = chord_len / 3.0
+    ux_s, uy_s = unit_vector(*t_start)
+    ux_e, uy_e = unit_vector(*t_end)
+    p1 = Point(p_start.x + alpha * ux_s, p_start.y + alpha * uy_s)
+    # t_end points INTO p_end, so P2 is reached by going BACKWARDS along it.
+    p2 = Point(p_end.x - beta * ux_e, p_end.y - beta * uy_e)
+    return cubic_bezier(p_start, p1, p2, p_end, n)
+
+
 def horizontal_line_through(y: float, span: float = 10000) -> tuple[Point, Point]:
     """Return two points defining the infinite horizontal line at the given y.
     `line_intersection` only needs the line direction; `span` keeps the points
