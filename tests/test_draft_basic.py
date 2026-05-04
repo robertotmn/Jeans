@@ -15,7 +15,9 @@ def test_front_seat_and_waist(default_measurements):
     front = build_basic_front(default_measurements)
     assert front.F.x == pytest.approx(44.0 / 4 * INCH)                   # seat/4 from B
     assert (front.G.x - front.F.x) == pytest.approx(2.0 * INCH)
-    assert (front.H.x - front.I.x) == pytest.approx((34.5 / 4 + 0.5) * INCH)  # waist/4+0.5
+    # H is measured TOWARD the fly axis from I (PDF page 7 step 8); in the
+    # mirrored layout that's the negative-x direction from I.
+    assert (front.I.x - front.H.x) == pytest.approx((34.5 / 4 + 0.5) * INCH)
 
 def test_front_K_and_N(default_measurements):
     front = build_basic_front(default_measurements)
@@ -52,7 +54,7 @@ def test_matches_excel_calculator(default_measurements):
     assert f.F.x == pytest.approx(279.4)         # seat/4
     assert f.G.x == pytest.approx(330.2)         # F + 2"
     assert f.I.x == pytest.approx(279.4)         # above F
-    assert f.H.x == pytest.approx(511.175)       # I + waist/4 + 0.5"
+    assert f.H.x == pytest.approx(47.625)        # I - (waist/4 + 0.5") (toward fly axis)
     # Hem distribution (mm)
     assert f.K.x == pytest.approx(165.1)         # midpoint B-G on hip line
     assert f.N.x == pytest.approx(165.1)         # below K

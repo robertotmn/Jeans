@@ -15,8 +15,8 @@ def test_updated_front_I_shifted(default_measurements):
 def test_updated_front_AA_position(default_measurements):
     f = build_updated_front(default_measurements)
     base = build_basic_front(default_measurements)
-    # F-AA = seat/16 sull'asse fly (x=0) sotto F (y aumenta)
-    assert f.AA.x == pytest.approx(0)
+    # PDF page 21 step 7: F-AA = seat/16, AA directly below F by seat/16.
+    assert f.AA.x == pytest.approx(base.F.x)
     assert f.AA.y == pytest.approx(base.F.y + 44.0/16 * INCH)
 
 def test_updated_back_X_position(default_measurements):
