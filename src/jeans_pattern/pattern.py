@@ -45,13 +45,17 @@ class Pattern:
         return iter(self.pieces)
 
 
-def build_full_pattern(m: "Measurements", style: str = "updated") -> Pattern:
+def build_full_pattern(m, style: str = "updated") -> Pattern:
     """Assemble all jeans pattern pieces from the given measurements.
 
-    style: "basic" (1900s-style straight-leg draft) or "updated" (501 silhouette).
+    style: "basic" or "updated" use the J.E. Landis draft and require
+    `m: Measurements`. style: "mueller" uses the M. Mueller & Sohn draft
+    (Design 3069) and requires `m: MuellerMeasurements`; it returns front
+    and back pieces only (no accessories yet).
 
-    Returns a Pattern containing the front, back, waistband, fly halves,
-    pocket bag/facing, back pocket, yoke, and one belt loop strip.
+    For the Landis styles, returns a Pattern containing the front, back,
+    waistband, fly halves, pocket bag/facing, back pocket, yoke, and one
+    belt loop strip.
     """
     # Lazy imports to avoid circular import: draft_extras imports PatternPiece
     # from this module at top level.
@@ -62,6 +66,34 @@ def build_full_pattern(m: "Measurements", style: str = "updated") -> Pattern:
         build_front_pocket, build_back_pocket, build_yoke,
     )
 
+    if style == "mueller":
+        from .draft_mueller import (
+            MuellerMeasurements, build_mueller_front, build_mueller_back,
+        )
+        if not isinstance(m, MuellerMeasurements):
+            raise TypeError(
+                f"style='mueller' requires MuellerMeasurements, "
+                f"got {type(m).__name__}"
+            )
+        front_pts = build_mueller_front(m)
+        back_pts = build_mueller_back(m, front=front_pts)
+        front_labels = [(pt, name) for name, pt in front_pts.labeled_points().items()]
+        front_labels.append((front_pts.F1, "FRONT (Mueller) x 2 (mirror)"))
+        back_labels = [(pt, name) for name, pt in back_pts.labeled_points().items()]
+        back_labels.append((back_pts.back_crotch_corner, "BACK (Mueller) x 2 (mirror)"))
+        return Pattern(pieces=[
+            PatternPiece(
+                name="front",
+                outline=front_pts.outline_polygon(),
+                labels=front_labels,
+            ),
+            PatternPiece(
+                name="back",
+                outline=back_pts.outline_polygon(),
+                labels=back_labels,
+            ),
+        ])
+
     if style == "basic":
         front_pts = build_basic_front(m)
         back_pts = build_basic_back(m, front=front_pts)
@@ -70,7 +102,9 @@ def build_full_pattern(m: "Measurements", style: str = "updated") -> Pattern:
         # Pass the underlying basic FrontPoints so build_basic_back doesn't recompute
         back_pts = build_updated_back(m, front=front_pts.base)
     else:
-        raise ValueError(f"unknown style {style!r}; expected 'basic' or 'updated'")
+        raise ValueError(
+            f"unknown style {style!r}; expected 'basic', 'updated', or 'mueller'"
+        )
 
     front_labels = [(pt, name) for name, pt in front_pts.labeled_points().items()]
     front_labels.append((front_pts.K, "FRONT x 2 (mirror)"))

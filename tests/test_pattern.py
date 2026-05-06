@@ -115,3 +115,22 @@ def test_all_pieces_are_simple_polygons_updated(default_measurements):
     for piece in pat:
         poly = Polygon([(p.x, p.y) for p in piece.outline])
         assert poly.is_simple, f"piece {piece.name!r} has self-intersecting outline"
+
+
+def test_build_full_pattern_mueller_size50():
+    from jeans_pattern.draft_mueller import MuellerMeasurements
+    from jeans_pattern.pattern import build_full_pattern
+    m = MuellerMeasurements.from_cm(
+        waistband=90, hip_girth=102, knee_girth=43, hem_width=38,
+        outseam=102, inseam=82,
+    )
+    pat = build_full_pattern(m, style="mueller")
+    names = [p.name for p in pat]
+    assert names == ["front", "back"]
+
+
+def test_build_full_pattern_mueller_rejects_landis_measurements(default_measurements):
+    import pytest
+    from jeans_pattern.pattern import build_full_pattern
+    with pytest.raises(TypeError):
+        build_full_pattern(default_measurements, style="mueller")
