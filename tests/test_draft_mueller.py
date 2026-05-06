@@ -80,14 +80,44 @@ def test_back_outline_simple(size50):
     assert len(b.outline_polygon()) >= 8
 
 
-def test_back_offsets_from_front(size50):
+def test_back_wedge_centre_back_raised(size50):
+    b = build_mueller_back(size50)
+    # Centre back is raised above outseam waist by 35 mm (3.5 cm)
+    assert b.centre_back_waist.y == pytest.approx(-35.0)
+    assert b.outseam_waist.y == pytest.approx(0.0)
+    # Higher (smaller y in y-down coords)
+    assert b.centre_back_waist.y < b.outseam_waist.y
+
+
+def test_back_wedge_horizontal_extent(size50):
+    b = build_mueller_back(size50)
+    # Back hip width = Btw + Bcw = 280 + 122 = 402 mm
+    assert b.centre_back_waist.x == pytest.approx(402.0)
+    assert b.crotch_corner.x == pytest.approx(402.0)
+
+
+def test_back_crotch_inseam_top_position(size50):
+    b = build_mueller_back(size50)
+    # crotch_inseam_top at (Btw, crotch_y) = (280, 200)
+    assert b.crotch_inseam_top.x == pytest.approx(280.0)
+    assert b.crotch_inseam_top.y == pytest.approx(200.0)
+
+
+def test_back_outline_simple_wedge(size50):
+    from shapely.geometry import Polygon
+    b = build_mueller_back(size50)
+    poly = Polygon([(p.x, p.y) for p in b.outline_polygon()])
+    assert poly.is_simple
+
+
+def test_back_inseam_levels_match_front(size50):
+    """Back inseam shares the same y-levels (knee, hem) as the front, since
+    both are drafted from the same outseam/inseam/knee_length measurements.
+    The back is in its own coord frame so x-positions differ."""
+    b = build_mueller_back(size50)
     f = build_mueller_front(size50)
-    b = build_mueller_back(size50, front=f)
-    # 1 cm parallel offsets at hem and knee
-    assert (f.hem_left.x - b.back_hem_left.x) == pytest.approx(10.0)
-    assert (b.back_hem_right.x - f.hem_right.x) == pytest.approx(10.0)
-    assert (f.knee_left.x - b.back_knee_left.x) == pytest.approx(10.0)
-    assert (b.back_knee_right.x - f.knee_right.x) == pytest.approx(10.0)
+    assert b.knee_inseam.y == pytest.approx(f.knee_left.y)
+    assert b.hem_inseam.y == pytest.approx(f.hem_left.y)
 
 
 def test_front_curves_keep_polygon_simple(size50):

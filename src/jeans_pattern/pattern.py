@@ -85,7 +85,7 @@ def build_full_pattern(m, style: str = "updated") -> Pattern:
         front_labels = [(pt, name) for name, pt in front_pts.labeled_points().items()]
         front_labels.append((front_pts.F1, "FRONT (Mueller) x 2 (mirror)"))
         back_labels = [(pt, name) for name, pt in back_pts.labeled_points().items()]
-        back_labels.append((back_pts.back_crotch_corner, "BACK (Mueller) x 2 (mirror)"))
+        back_labels.append((back_pts.crotch_corner, "BACK (Mueller) x 2 (mirror)"))
         fly = build_mueller_zipper_fly(m)
         pocket = build_mueller_front_pocket(m)
         return Pattern(pieces=[

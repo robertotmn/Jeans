@@ -170,76 +170,70 @@ class MuellerFrontPoints:
 
 @dataclass(frozen=True)
 class MuellerBackPoints:
-    """Back pattern landmark points (M&S Design 3069, simplified).
+    """Back pattern landmark points for M&S Design 3069.
 
-    The M&S back is constructed by overlaying the front; we keep the same
-    horizontal levels and shift outseam/inseam outward by 1 cm at hem and
-    knee (parallel offset), then extend the hipline rightward by 2 cm + Btw
-    + Bcw to define the back-crotch corner.
+    The back has a distinctive WEDGE shape per the M&S diagram (PDF page 3):
+    - Slanted waistline (outseam waist lower, centre back waist higher by ~3.5 cm)
+    - J-shaped back-crotch curve from centre back down to inseam top
+    - Inseam offset 1 cm parallel from front pattern's outseam
+
+    Self-contained coordinate system: back's local origin at outseam waist
+    (top-left). Positioned in the layout via export.
     """
-    front: MuellerFrontPoints   # original front, used as reference
-    back_waist_outseam: Point
-    back_waist_cb: Point        # centre back at waist
-    back_crotch_corner: Point   # back-crotch outermost corner at hip level
-    back_knee_left: Point
-    back_knee_right: Point
-    back_hem_left: Point
-    back_hem_right: Point
-    back_crotch_inseam_top: Point
+    outseam_waist: Point          # top-left
+    centre_back_waist: Point      # top-right (raised)
+    crotch_corner: Point          # right side at hip line
+    crotch_inseam_top: Point      # deep crotch point at crotch line
+    knee_inseam: Point            # back's inseam at knee
+    knee_outseam: Point           # back's outseam at knee
+    hem_inseam: Point             # back's inseam at hem
+    hem_outseam: Point            # back's outseam at hem
 
     def labeled_points(self) -> dict[str, Point]:
         return {
-            "BWos": self.back_waist_outseam,
-            "BWcb": self.back_waist_cb,
-            "BCr": self.back_crotch_corner,
-            "BKl": self.back_knee_left,
-            "BKr": self.back_knee_right,
-            "BHl": self.back_hem_left,
-            "BHr": self.back_hem_right,
-            "BCit": self.back_crotch_inseam_top,
+            "BWos": self.outseam_waist,
+            "BWcb": self.centre_back_waist,
+            "BCr": self.crotch_corner,
+            "BCit": self.crotch_inseam_top,
+            "BKi": self.knee_inseam,
+            "BKo": self.knee_outseam,
+            "BHi": self.hem_inseam,
+            "BHo": self.hem_outseam,
         }
 
     def outline_polygon(self) -> list[Point]:
-        """Back piece outline with M&S curves:
-        - back_waist_cb -> back_crotch_corner: outward hip curve (~10 mm)
-        - back_crotch_inseam_top -> back_waist_outseam (closing): back-crotch
-          J-curve (~20 mm bow toward upper-right of motion direction)
-        """
+        """Back piece outline with M&S wedge shape and J-curve back-crotch."""
         from .geometry import curve_segment
 
-        # Outward hip curve back_waist_cb -> back_crotch_corner.
-        # Both have x > 0; chord goes down-right. Perpendicular outward (+x)
-        # is (chord_y, -chord_x).
-        chord_x = self.back_crotch_corner.x - self.back_waist_cb.x
-        chord_y = self.back_crotch_corner.y - self.back_waist_cb.y
-        hip_curve = curve_segment(
-            self.back_waist_cb, self.back_crotch_corner,
-            bow_mm=10.0, perp_x=chord_y, perp_y=-chord_x, n=14,
-        )
-
-        # Back-crotch closing chord back_crotch_inseam_top -> back_waist_outseam.
-        # back_crotch_inseam_top is at (0, crotch_y); back_waist_outseam is at
-        # (back_hip_outseam.x, 0). Chord goes up-right. Bow concavely toward
-        # upper-left (i.e. +y / -x direction relative to chord) so the polygon
-        # belly sits INSIDE the back piece (the back-rise curve).
-        chord_x = self.back_waist_outseam.x - self.back_crotch_inseam_top.x
-        chord_y = self.back_waist_outseam.y - self.back_crotch_inseam_top.y
+        # Back-crotch J-curve: crotch_corner -> crotch_inseam_top
+        # Polygon goes clockwise; interior is to the LEFT of motion. We want
+        # the curve to bow OUT of the polygon interior (away from interior),
+        # which for clockwise motion is to the RIGHT of the chord direction.
+        # Right-of-motion in y-down: (chord_y, -chord_x).
+        chord_x = self.crotch_inseam_top.x - self.crotch_corner.x
+        chord_y = self.crotch_inseam_top.y - self.crotch_corner.y
         crotch_curve = curve_segment(
-            self.back_crotch_inseam_top, self.back_waist_outseam,
-            bow_mm=20.0, perp_x=-chord_y, perp_y=chord_x, n=20,
+            self.crotch_corner, self.crotch_inseam_top,
+            bow_mm=20.0,
+            perp_x=chord_y, perp_y=-chord_x,
+            n=24,
         )
 
-        outline: list[Point] = [self.back_waist_outseam, self.back_waist_cb]
-        # back_waist_cb -> back_crotch_corner: outward hip curve
-        outline.extend(hip_curve[1:])
-        # back_crotch_corner -> ... -> back_crotch_inseam_top: straight
-        outline.append(self.back_knee_right)
-        outline.append(self.back_hem_right)
-        outline.append(self.back_hem_left)
-        outline.append(self.back_knee_left)
-        outline.append(self.back_crotch_inseam_top)
-        # back_crotch_inseam_top -> back_waist_outseam (closing): back-crotch curve
-        outline.extend(crotch_curve[1:-1])
+        outline: list[Point] = []
+        outline.append(self.outseam_waist)
+        # Slanted waist top: straight line outseam_waist -> centre_back_waist
+        outline.append(self.centre_back_waist)
+        # Centre back vertical: straight line centre_back_waist -> crotch_corner
+        outline.append(self.crotch_corner)
+        # Back-crotch J-curve: crotch_corner -> crotch_inseam_top (drop first endpoint)
+        outline.extend(crotch_curve[1:])
+        # Inseam: straight from crotch_inseam_top -> knee_inseam -> hem_inseam
+        outline.append(self.knee_inseam)
+        outline.append(self.hem_inseam)
+        # Hem: straight hem_inseam -> hem_outseam
+        outline.append(self.hem_outseam)
+        # Outseam: straight hem_outseam -> knee_outseam -> outseam_waist (close)
+        outline.append(self.knee_outseam)
         return outline
 
 
@@ -306,56 +300,64 @@ def build_mueller_front(m: MuellerMeasurements) -> MuellerFrontPoints:
 
 def build_mueller_back(m: MuellerMeasurements,
                        front: MuellerFrontPoints | None = None) -> MuellerBackPoints:
-    """Construct M&S Design 3069 Basic Jeans BACK landmark points.
+    """Build back pattern with M&S wedge shape per PDF page 3 illustration.
 
-    Simplified interpretation of PDF pages 2-3:
-    - Hem and knee 1 cm parallel-offset from front (outward on both sides).
-    - Hipline extended rightward: +2cm beyond F1 = back outseam at hip,
-      then +Btw, then +Bcw -> back crotch corner.
-    - Back outseam waist squared up from back hip outseam.
-    - Centre-back at waist squared up from back crotch corner. (The PDF's
-      "+3-4 cm to centre back, chosen for right-angle" refinement is left
-      to a future curve-fitting pass.)
-    - Crotch inseam top is shared with the front (at the construction line).
+    The back is self-contained in its own coordinate system:
+    - Local origin at outseam_waist (top-left).
+    - y grows DOWN toward hem (matches app convention).
+    - x grows RIGHT toward centre back.
+    - Centre back at waist is RAISED 3.5 cm above outseam waist (negative y).
+
+    The optional `front` parameter is accepted for API compatibility but the
+    back is no longer derived from front coordinates — it stands alone.
     """
-    if front is None:
-        front = build_mueller_front(m)
-
+    Os = m.outseam_mm
+    Is = m.inseam_mm
+    hip_depth = m.hip_depth_mm
+    Kl = m.knee_length_mm
     Btw = m.back_trouser_width_mm
     Bcw = m.back_crotch_width_mm
+    Hw = m.hem_width_mm
+    Kg = m.knee_girth_mm
 
-    one_cm = 1.0 * CM_TO_MM
-    two_cm = 2.0 * CM_TO_MM
+    # Y levels (back's local frame: outseam waist at y=0, going down)
+    waist_y_outseam = 0.0
+    # Centre back raised 3.5 cm above outseam waist (PDF: "3 to 4 cm extra";
+    # pick 3.5 cm as midpoint).
+    waist_y_cb = -3.5 * CM_TO_MM
+    hip_y = Os - Is - hip_depth
+    crotch_y = Os - Is
+    knee_y = Os - Kl
+    hem_y = Os
 
-    # Hem and knee 1 cm parallel offset
-    back_hem_left = Point(front.hem_left.x - one_cm, front.hem_left.y)
-    back_hem_right = Point(front.hem_right.x + one_cm, front.hem_right.y)
-    back_knee_left = Point(front.knee_left.x - one_cm, front.knee_left.y)
-    back_knee_right = Point(front.knee_right.x + one_cm, front.knee_right.y)
+    # Back hem and knee widths: 2 cm wider than front (1 cm extra each side
+    # per the PDF, since back is paired with front around the leg).
+    back_hem_width = (Hw / 2 - 0.5 * CM_TO_MM) + 2.0 * CM_TO_MM
+    back_knee_width = (Kg / 2 - 0.5 * CM_TO_MM) + 2.0 * CM_TO_MM
 
-    # Hipline extension: 2cm right of F1 is the back outseam-at-hip
-    back_hip_outseam = Point(front.F1.x + two_cm, front.F1.y)
-    # Then Btw to the right: back trouser width corner at hip
-    back_hip_trouser = Point(back_hip_outseam.x + Btw, front.F1.y)
-    # Then Bcw further right: back crotch corner at hip
-    back_crotch_corner = Point(back_hip_trouser.x + Bcw, front.F1.y)
+    # Total back hip width = Btw + Bcw (full extent at hip line, x=0 at outseam)
+    back_hip_width = Btw + Bcw
 
-    # Back outseam waist: square up from back_hip_outseam to waist line
-    back_waist_outseam = Point(back_hip_outseam.x, 0.0)
-    # Back centre-back waist: square up from back_crotch_corner to waist line
-    back_waist_cb = Point(back_crotch_corner.x, 0.0)
-
-    # Back crotch inseam top: shared with front (at crotch level on construction line)
-    back_crotch_inseam_top = front.crotch_inseam_top
+    # Key points (back local x: 0 at outseam_waist, positive toward centre back)
+    outseam_waist = Point(0.0, waist_y_outseam)
+    centre_back_waist = Point(back_hip_width, waist_y_cb)
+    crotch_corner = Point(back_hip_width, hip_y)
+    # crotch_inseam_top: x = back_hip_width - Bcw = Btw
+    crotch_inseam_top = Point(Btw, crotch_y)
+    # Inseam (right edge of back as drawn): straight DOWN from crotch_inseam_top
+    knee_inseam = Point(Btw, knee_y)
+    hem_inseam = Point(Btw, hem_y)
+    # Outseam (left edge of back as drawn): hem and knee offset LEFT by back widths
+    hem_outseam = Point(Btw - back_hem_width, hem_y)
+    knee_outseam = Point(Btw - back_knee_width, knee_y)
 
     return MuellerBackPoints(
-        front=front,
-        back_waist_outseam=back_waist_outseam,
-        back_waist_cb=back_waist_cb,
-        back_crotch_corner=back_crotch_corner,
-        back_knee_left=back_knee_left,
-        back_knee_right=back_knee_right,
-        back_hem_left=back_hem_left,
-        back_hem_right=back_hem_right,
-        back_crotch_inseam_top=back_crotch_inseam_top,
+        outseam_waist=outseam_waist,
+        centre_back_waist=centre_back_waist,
+        crotch_corner=crotch_corner,
+        crotch_inseam_top=crotch_inseam_top,
+        knee_inseam=knee_inseam,
+        knee_outseam=knee_outseam,
+        hem_inseam=hem_inseam,
+        hem_outseam=hem_outseam,
     )
