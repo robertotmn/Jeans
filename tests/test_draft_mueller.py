@@ -67,7 +67,8 @@ def test_front_outline_simple(size50):
     f = build_mueller_front(size50)
     poly = Polygon([(p.x, p.y) for p in f.outline_polygon()])
     assert poly.is_simple, "Mueller front outline must be simple (non-self-intersecting)"
-    assert len(f.outline_polygon()) == 8
+    # Outline is now sampled with curves (hip + fly): >= 8 vertices
+    assert len(f.outline_polygon()) >= 8
 
 
 def test_back_outline_simple(size50):
@@ -75,7 +76,8 @@ def test_back_outline_simple(size50):
     b = build_mueller_back(size50)
     poly = Polygon([(p.x, p.y) for p in b.outline_polygon()])
     assert poly.is_simple
-    assert len(b.outline_polygon()) == 8
+    # Outline is now sampled with curves (hip + back-crotch): >= 8 vertices
+    assert len(b.outline_polygon()) >= 8
 
 
 def test_back_offsets_from_front(size50):
@@ -86,6 +88,20 @@ def test_back_offsets_from_front(size50):
     assert (b.back_hem_right.x - f.hem_right.x) == pytest.approx(10.0)
     assert (f.knee_left.x - b.back_knee_left.x) == pytest.approx(10.0)
     assert (b.back_knee_right.x - f.knee_right.x) == pytest.approx(10.0)
+
+
+def test_front_curves_keep_polygon_simple(size50):
+    from shapely.geometry import Polygon
+    f = build_mueller_front(size50)
+    poly = Polygon([(p.x, p.y) for p in f.outline_polygon()])
+    assert poly.is_simple
+
+
+def test_back_curves_keep_polygon_simple(size50):
+    from shapely.geometry import Polygon
+    b = build_mueller_back(size50)
+    poly = Polygon([(p.x, p.y) for p in b.outline_polygon()])
+    assert poly.is_simple
 
 
 def test_negative_measurement_rejected():

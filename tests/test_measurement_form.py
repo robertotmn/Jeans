@@ -45,3 +45,38 @@ def test_form_unit_toggle_converts_values(form):
 def test_form_style_toggle(form):
     form.set_style("basic")
     assert form.style() == "basic"
+
+
+def test_form_default_system_is_landis(form):
+    assert form.system() == "landis"
+
+
+def test_form_system_toggle_to_mueller(form, qtbot):
+    with qtbot.waitSignal(form.measurements_changed, timeout=1000):
+        form.set_system("mueller")
+    assert form.system() == "mueller"
+    assert form.style() == "mueller"
+
+
+def test_form_mueller_to_measurements(form):
+    form.set_system("mueller")
+    form.set_value("waistband", 90.0)
+    form.set_value("hip_girth", 102.0)
+    form.set_value("knee_girth", 43.0)
+    form.set_value("hem_width", 38.0)
+    form.set_value("outseam", 102.0)
+    form.set_value("inseam", 82.0)
+    m = form.to_measurements()
+    from jeans_pattern.draft_mueller import MuellerMeasurements
+    assert isinstance(m, MuellerMeasurements)
+    assert m.waistband_mm == pytest.approx(900.0)
+    assert m.hip_girth_mm == pytest.approx(1020.0)
+
+
+def test_form_landis_to_measurements_after_toggle(form):
+    """Switching to Mueller and back to Landis still produces Measurements."""
+    form.set_system("mueller")
+    form.set_system("landis")
+    m = form.to_measurements()
+    from jeans_pattern.measurements import Measurements
+    assert isinstance(m, Measurements)

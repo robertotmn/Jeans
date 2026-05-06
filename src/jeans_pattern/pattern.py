@@ -70,6 +70,11 @@ def build_full_pattern(m, style: str = "updated") -> Pattern:
         from .draft_mueller import (
             MuellerMeasurements, build_mueller_front, build_mueller_back,
         )
+        from .draft_mueller_extras import (
+            build_mueller_waistband, build_mueller_belt_loop,
+            build_mueller_zipper_fly, build_mueller_front_pocket,
+            build_mueller_back_pocket, build_mueller_yoke,
+        )
         if not isinstance(m, MuellerMeasurements):
             raise TypeError(
                 f"style='mueller' requires MuellerMeasurements, "
@@ -81,6 +86,8 @@ def build_full_pattern(m, style: str = "updated") -> Pattern:
         front_labels.append((front_pts.F1, "FRONT (Mueller) x 2 (mirror)"))
         back_labels = [(pt, name) for name, pt in back_pts.labeled_points().items()]
         back_labels.append((back_pts.back_crotch_corner, "BACK (Mueller) x 2 (mirror)"))
+        fly = build_mueller_zipper_fly(m)
+        pocket = build_mueller_front_pocket(m)
         return Pattern(pieces=[
             PatternPiece(
                 name="front",
@@ -92,6 +99,14 @@ def build_full_pattern(m, style: str = "updated") -> Pattern:
                 outline=back_pts.outline_polygon(),
                 labels=back_labels,
             ),
+            build_mueller_waistband(m),
+            fly["shield"],
+            fly["facing"],
+            pocket["pocket_bag"],
+            pocket["pocket_facing"],
+            build_mueller_back_pocket(m),
+            build_mueller_yoke(m),
+            build_mueller_belt_loop(),
         ])
 
     if style == "basic":

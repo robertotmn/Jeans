@@ -125,17 +125,47 @@ class MuellerFrontPoints:
         Topology mirrors the Landis basic front: waist (fly side -> outseam),
         outseam down through hip corner (F2) and knee (knee_right) to hem,
         hem across, inseam back up through knee_left to crotch corner.
+
+        Two M&S curves are sampled into the polygon:
+        - waist_outseam -> F2: slight outward hip curve (~8 mm bow)
+        - crotch_inseam_top -> waist_cf_inset (closing fly chord): J-curve
+          bowing inward toward upper-left (concave fly seam, ~12 mm bow)
         """
-        return [
-            self.waist_cf_inset,
-            self.waist_outseam,
-            self.F2,
-            self.knee_right,
-            self.hem_right,
-            self.hem_left,
-            self.knee_left,
-            self.crotch_inseam_top,
-        ]
+        from .geometry import curve_segment
+
+        # Outward hip curve waist_outseam -> F2 (bow OUTWARD, +x).
+        # In y-down coords, perpendicular (+x outward) for a chord going
+        # roughly down-right is (chord_y, -chord_x).
+        chord_x = self.F2.x - self.waist_outseam.x
+        chord_y = self.F2.y - self.waist_outseam.y
+        outseam_hip_curve = curve_segment(
+            self.waist_outseam, self.F2,
+            bow_mm=8.0, perp_x=chord_y, perp_y=-chord_x, n=14,
+        )
+
+        # Closing fly chord crotch_inseam_top -> waist_cf_inset, J-curve.
+        # The fly is the "front centre" closing seam; bow it concavely toward
+        # the centre line so the polygon belly bulges INWARD (toward CF).
+        chord_x = self.waist_cf_inset.x - self.crotch_inseam_top.x
+        chord_y = self.waist_cf_inset.y - self.crotch_inseam_top.y
+        fly_curve = curve_segment(
+            self.crotch_inseam_top, self.waist_cf_inset,
+            bow_mm=12.0, perp_x=-chord_y, perp_y=chord_x, n=20,
+        )
+
+        outline: list[Point] = [self.waist_cf_inset, self.waist_outseam]
+        # waist_outseam -> F2: hip curve (drop endpoint duplicate)
+        outline.extend(outseam_hip_curve[1:])
+        # F2 -> knee_right -> hem_right -> hem_left -> knee_left -> crotch_inseam_top: straight
+        outline.append(self.knee_right)
+        outline.append(self.hem_right)
+        outline.append(self.hem_left)
+        outline.append(self.knee_left)
+        outline.append(self.crotch_inseam_top)
+        # Closing chord: crotch_inseam_top -> waist_cf_inset (drop both endpoints
+        # since both are already present at start/end of polygon list).
+        outline.extend(fly_curve[1:-1])
+        return outline
 
 
 @dataclass(frozen=True)
@@ -170,16 +200,47 @@ class MuellerBackPoints:
         }
 
     def outline_polygon(self) -> list[Point]:
-        return [
-            self.back_waist_outseam,
-            self.back_waist_cb,
-            self.back_crotch_corner,
-            self.back_knee_right,
-            self.back_hem_right,
-            self.back_hem_left,
-            self.back_knee_left,
-            self.back_crotch_inseam_top,
-        ]
+        """Back piece outline with M&S curves:
+        - back_waist_cb -> back_crotch_corner: outward hip curve (~10 mm)
+        - back_crotch_inseam_top -> back_waist_outseam (closing): back-crotch
+          J-curve (~20 mm bow toward upper-right of motion direction)
+        """
+        from .geometry import curve_segment
+
+        # Outward hip curve back_waist_cb -> back_crotch_corner.
+        # Both have x > 0; chord goes down-right. Perpendicular outward (+x)
+        # is (chord_y, -chord_x).
+        chord_x = self.back_crotch_corner.x - self.back_waist_cb.x
+        chord_y = self.back_crotch_corner.y - self.back_waist_cb.y
+        hip_curve = curve_segment(
+            self.back_waist_cb, self.back_crotch_corner,
+            bow_mm=10.0, perp_x=chord_y, perp_y=-chord_x, n=14,
+        )
+
+        # Back-crotch closing chord back_crotch_inseam_top -> back_waist_outseam.
+        # back_crotch_inseam_top is at (0, crotch_y); back_waist_outseam is at
+        # (back_hip_outseam.x, 0). Chord goes up-right. Bow concavely toward
+        # upper-left (i.e. +y / -x direction relative to chord) so the polygon
+        # belly sits INSIDE the back piece (the back-rise curve).
+        chord_x = self.back_waist_outseam.x - self.back_crotch_inseam_top.x
+        chord_y = self.back_waist_outseam.y - self.back_crotch_inseam_top.y
+        crotch_curve = curve_segment(
+            self.back_crotch_inseam_top, self.back_waist_outseam,
+            bow_mm=20.0, perp_x=-chord_y, perp_y=chord_x, n=20,
+        )
+
+        outline: list[Point] = [self.back_waist_outseam, self.back_waist_cb]
+        # back_waist_cb -> back_crotch_corner: outward hip curve
+        outline.extend(hip_curve[1:])
+        # back_crotch_corner -> ... -> back_crotch_inseam_top: straight
+        outline.append(self.back_knee_right)
+        outline.append(self.back_hem_right)
+        outline.append(self.back_hem_left)
+        outline.append(self.back_knee_left)
+        outline.append(self.back_crotch_inseam_top)
+        # back_crotch_inseam_top -> back_waist_outseam (closing): back-crotch curve
+        outline.extend(crotch_curve[1:-1])
+        return outline
 
 
 def build_mueller_front(m: MuellerMeasurements) -> MuellerFrontPoints:
