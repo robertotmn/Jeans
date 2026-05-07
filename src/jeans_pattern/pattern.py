@@ -50,12 +50,13 @@ def build_full_pattern(m, style: str = "updated") -> Pattern:
 
     style: "basic" or "updated" use the J.E. Landis draft and require
     `m: Measurements`. style: "mueller" uses the M. Mueller & Sohn draft
-    (Design 3069) and requires `m: MuellerMeasurements`; it returns front
-    and back pieces only (no accessories yet).
+    (Design 3069 - formula-based) and requires `m: MuellerMeasurements`.
+    style: "mueller2" uses the M. Mueller & Sohn template-based system (TPS
+    warp of the extracted M&S diagram) and also requires `m: MuellerMeasurements`.
 
     For the Landis styles, returns a Pattern containing the front, back,
     waistband, fly halves, pocket bag/facing, back pocket, yoke, and one
-    belt loop strip.
+    belt loop strip. Both Mueller variants share the same accessory set.
     """
     # Lazy imports to avoid circular import: draft_extras imports PatternPiece
     # from this module at top level.
@@ -65,6 +66,48 @@ def build_full_pattern(m, style: str = "updated") -> Pattern:
         build_waistband, build_belt_loop, build_button_fly,
         build_front_pocket, build_back_pocket, build_yoke,
     )
+
+    if style == "mueller2":
+        from .draft_mueller import MuellerMeasurements
+        from .draft_mueller2 import build_mueller2_front, build_mueller2_back
+        from .draft_mueller_extras import (
+            build_mueller_waistband, build_mueller_belt_loop,
+            build_mueller_zipper_fly, build_mueller_front_pocket,
+            build_mueller_back_pocket, build_mueller_yoke,
+        )
+        if not isinstance(m, MuellerMeasurements):
+            raise TypeError(
+                f"style='mueller2' requires MuellerMeasurements, "
+                f"got {type(m).__name__}"
+            )
+        front_pts = build_mueller2_front(m)
+        back_pts = build_mueller2_back(m)
+        front_labels = [(pt, name) for name, pt in front_pts.labeled_points().items()]
+        front_labels.append((front_pts.anchors["Ftw"], "FRONT (Mueller2) x 2 (mirror)"))
+        back_labels = [(pt, name) for name, pt in back_pts.labeled_points().items()]
+        back_labels.append((back_pts.anchors["Btw"], "BACK (Mueller2) x 2 (mirror)"))
+        fly = build_mueller_zipper_fly(m)
+        pocket = build_mueller_front_pocket(m)
+        return Pattern(pieces=[
+            PatternPiece(
+                name="front",
+                outline=front_pts.outline_polygon(),
+                labels=front_labels,
+            ),
+            PatternPiece(
+                name="back",
+                outline=back_pts.outline_polygon(),
+                labels=back_labels,
+            ),
+            build_mueller_waistband(m),
+            fly["shield"],
+            fly["facing"],
+            pocket["pocket_bag"],
+            pocket["pocket_facing"],
+            build_mueller_back_pocket(m),
+            build_mueller_yoke(m),
+            build_mueller_belt_loop(),
+        ])
 
     if style == "mueller":
         from .draft_mueller import (
@@ -118,7 +161,7 @@ def build_full_pattern(m, style: str = "updated") -> Pattern:
         back_pts = build_updated_back(m, front=front_pts.base)
     else:
         raise ValueError(
-            f"unknown style {style!r}; expected 'basic', 'updated', or 'mueller'"
+            f"unknown style {style!r}; expected 'basic', 'updated', 'mueller', or 'mueller2'"
         )
 
     front_labels = [(pt, name) for name, pt in front_pts.labeled_points().items()]

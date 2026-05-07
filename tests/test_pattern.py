@@ -149,3 +149,25 @@ def test_build_full_pattern_mueller_rejects_landis_measurements(default_measurem
     from jeans_pattern.pattern import build_full_pattern
     with pytest.raises(TypeError):
         build_full_pattern(default_measurements, style="mueller")
+
+
+def test_build_full_pattern_mueller2_includes_accessories():
+    from jeans_pattern.draft_mueller import MuellerMeasurements
+    from jeans_pattern.pattern import build_full_pattern
+    m = MuellerMeasurements.from_cm(
+        waistband=90, hip_girth=102, knee_girth=43, hem_width=38,
+        outseam=102, inseam=82,
+    )
+    pat = build_full_pattern(m, style="mueller2")
+    names = {p.name for p in pat}
+    assert names == {
+        "front", "back", "waistband", "fly_shield", "fly_facing",
+        "pocket_bag", "pocket_facing", "back_pocket", "yoke", "belt_loop",
+    }
+
+
+def test_build_full_pattern_mueller2_rejects_landis_measurements(default_measurements):
+    import pytest
+    from jeans_pattern.pattern import build_full_pattern
+    with pytest.raises(TypeError):
+        build_full_pattern(default_measurements, style="mueller2")

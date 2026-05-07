@@ -80,3 +80,24 @@ def test_form_landis_to_measurements_after_toggle(form):
     m = form.to_measurements()
     from jeans_pattern.measurements import Measurements
     assert isinstance(m, Measurements)
+
+
+def test_form_system_toggle_to_mueller2(form, qtbot):
+    with qtbot.waitSignal(form.measurements_changed, timeout=1000):
+        form.set_system("mueller2")
+    assert form.system() == "mueller2"
+    assert form.style() == "mueller2"
+
+
+def test_form_mueller2_to_measurements(form):
+    form.set_system("mueller2")
+    form.set_value("waistband", 90.0)
+    form.set_value("hip_girth", 102.0)
+    form.set_value("knee_girth", 43.0)
+    form.set_value("hem_width", 38.0)
+    form.set_value("outseam", 102.0)
+    form.set_value("inseam", 82.0)
+    m = form.to_measurements()
+    from jeans_pattern.draft_mueller import MuellerMeasurements
+    assert isinstance(m, MuellerMeasurements)
+    assert m.waistband_mm == pytest.approx(900.0)
