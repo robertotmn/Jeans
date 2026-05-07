@@ -1,8 +1,11 @@
 """SVG export of an assembled Pattern. Output unit is mm (1 SVG user unit = 1 mm),
 so the rendered SVG is at 1:1 scale when imported into a viewer that respects
 declared dimensions."""
+import base64
+import io
+
 import svgwrite
-from .pattern import Pattern
+from .pattern import Pattern, RasterPiece
 
 
 def pattern_to_svg(pattern: Pattern, gap_mm: float = 30.0) -> bytes:
@@ -39,25 +42,34 @@ def pattern_to_svg(pattern: Pattern, gap_mm: float = 30.0) -> bytes:
     )
 
     for piece, ox, oy in placed:
-        # Outline: closed polygon
-        pts = [(p.x + ox, p.y + oy) for p in piece.outline]
-        dwg.add(dwg.polygon(
-            points=pts,
-            fill="none",
-            stroke="black",
-            stroke_width=0.3,
-        ))
-
-        # Construction lines (dashed green)
-        for line in piece.construction_lines:
-            d_pts = [(p.x + ox, p.y + oy) for p in line]
-            dwg.add(dwg.polyline(
-                points=d_pts,
-                fill="none",
-                stroke="green",
-                stroke_dasharray="2,2",
-                stroke_width=0.2,
+        if isinstance(piece, RasterPiece):
+            x0, y0, x1, y1 = piece.bbox_mm
+            buf = io.BytesIO()
+            piece.image.save(buf, format="PNG")
+            href = "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode("ascii")
+            dwg.add(dwg.image(
+                href=href,
+                insert=(x0 + ox, y0 + oy),
+                size=(x1 - x0, y1 - y0),
             ))
+        else:
+            pts = [(p.x + ox, p.y + oy) for p in piece.outline]
+            dwg.add(dwg.polygon(
+                points=pts,
+                fill="none",
+                stroke="black",
+                stroke_width=0.3,
+            ))
+
+            for line in piece.construction_lines:
+                d_pts = [(p.x + ox, p.y + oy) for p in line]
+                dwg.add(dwg.polyline(
+                    points=d_pts,
+                    fill="none",
+                    stroke="green",
+                    stroke_dasharray="2,2",
+                    stroke_width=0.2,
+                ))
 
         # Labels (text annotations on the piece)
         for pt, text in piece.labels:

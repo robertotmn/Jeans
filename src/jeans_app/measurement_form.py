@@ -61,6 +61,7 @@ class MeasurementForm(QtWidgets.QWidget):
             "Landis (basic / 501)",
             "Mueller & Sohn 1 (formule)",
             "Mueller & Sohn 2 (template)",
+            "Mueller & Sohn 3 (raster)",
         ])
         self._system_combo.currentTextChanged.connect(self._on_system_changed)
         layout.addRow("Sistema", self._system_combo)
@@ -103,7 +104,7 @@ class MeasurementForm(QtWidgets.QWidget):
     # ----- Public API ----------------------------------------------------
 
     def system(self) -> str:
-        """Returns 'landis', 'mueller', or 'mueller2'."""
+        """Returns 'landis', 'mueller', 'mueller2', or 'mueller3'."""
         return self._system
 
     def set_system(self, system: str) -> None:
@@ -113,6 +114,8 @@ class MeasurementForm(QtWidgets.QWidget):
             self._system_combo.setCurrentIndex(1)
         elif system == "mueller2":
             self._system_combo.setCurrentIndex(2)
+        elif system == "mueller3":
+            self._system_combo.setCurrentIndex(3)
         else:
             raise ValueError(f"unknown system {system!r}")
 
@@ -136,7 +139,7 @@ class MeasurementForm(QtWidgets.QWidget):
             if self._unit == "cm":
                 return Measurements.from_cm(**vals)
             return Measurements.from_inches(**vals)
-        # mueller or mueller2 (both produce MuellerMeasurements)
+        # mueller, mueller2, or mueller3 (all produce MuellerMeasurements)
         keys = [k for k, _ in MUELLER_FIELDS]
         vals = {k: self._spinboxes[k].value() for k in keys}
         if self._unit == "inch":
@@ -145,7 +148,9 @@ class MeasurementForm(QtWidgets.QWidget):
         return MuellerMeasurements.from_cm(**vals)
 
     def style(self) -> str:
-        """Returns 'mueller2', 'mueller', or 'basic'/'updated' for Landis."""
+        """Returns 'mueller3', 'mueller2', 'mueller', or 'basic'/'updated' for Landis."""
+        if self._system == "mueller3":
+            return "mueller3"
         if self._system == "mueller2":
             return "mueller2"
         if self._system == "mueller":
@@ -153,7 +158,9 @@ class MeasurementForm(QtWidgets.QWidget):
         return "updated" if "updated" in self._style_combo.currentText() else "basic"
 
     def set_style(self, style: str) -> None:
-        if style == "mueller2":
+        if style == "mueller3":
+            self.set_system("mueller3")
+        elif style == "mueller2":
             self.set_system("mueller2")
         elif style == "mueller":
             self.set_system("mueller")
@@ -169,7 +176,9 @@ class MeasurementForm(QtWidgets.QWidget):
     # ----- Internal handlers ---------------------------------------------
 
     def _on_system_changed(self, new_text: str) -> None:
-        if "Mueller" in new_text and "2" in new_text:
+        if "Mueller" in new_text and "3" in new_text:
+            new_system = "mueller3"
+        elif "Mueller" in new_text and "2" in new_text:
             new_system = "mueller2"
         elif "Mueller" in new_text:
             new_system = "mueller"

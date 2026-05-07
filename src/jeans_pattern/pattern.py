@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from typing import Union
 from .geometry import Point
 from .constants import SA_3_8_IN_MM
 
@@ -37,9 +38,33 @@ class PatternPiece:
                 ys.append(p.y)
         return (min(xs), min(ys), max(xs), max(ys))
 
+
+@dataclass
+class RasterPiece:
+    """A pattern piece backed by a raster image instead of a polygon outline.
+
+    Used by the mueller3 system: the M&S diagram is warped pixel-by-pixel via
+    TPS so the original drawing (with its labels, hatching, etc.) is preserved
+    rather than vectorised. PDF/SVG exporters dispatch on type and embed the
+    image at its bbox_mm position.
+    """
+    name: str
+    image: object                          # PIL.Image.Image — typed loosely to avoid forcing a hard PIL import here
+    bbox_mm: tuple[float, float, float, float]
+    dpi: float = 100.0
+    labels: list[tuple[Point, str]] = field(default_factory=list)
+
+    def bbox(self) -> tuple[float, float, float, float]:
+        """Match PatternPiece API so layout code is shared between vector and raster pieces."""
+        return self.bbox_mm
+
+
+PieceLike = Union[PatternPiece, RasterPiece]
+
+
 @dataclass
 class Pattern:
-    pieces: list[PatternPiece]
+    pieces: list[PieceLike]
 
     def __iter__(self):
         return iter(self.pieces)
@@ -66,6 +91,52 @@ def build_full_pattern(m, style: str = "updated") -> Pattern:
         build_waistband, build_belt_loop, build_button_fly,
         build_front_pocket, build_back_pocket, build_yoke,
     )
+
+    if style == "mueller3":
+        from .draft_mueller import MuellerMeasurements
+        from .draft_mueller3 import build_mueller3_front, build_mueller3_back
+        from .draft_mueller_extras import (
+            build_mueller_waistband, build_mueller_belt_loop,
+            build_mueller_zipper_fly, build_mueller_front_pocket,
+            build_mueller_back_pocket, build_mueller_yoke,
+        )
+        if not isinstance(m, MuellerMeasurements):
+            raise TypeError(
+                f"style='mueller3' requires MuellerMeasurements, "
+                f"got {type(m).__name__}"
+            )
+        front_piece = build_mueller3_front(m)
+        back_piece = build_mueller3_back(m)
+        front_labels = [(pt, name) for name, pt in front_piece.labeled_points().items()]
+        front_labels.append((front_piece.anchors["Ftw"], "FRONT (Mueller3) x 2 (mirror)"))
+        back_labels = [(pt, name) for name, pt in back_piece.labeled_points().items()]
+        back_labels.append((back_piece.anchors["Btw"], "BACK (Mueller3) x 2 (mirror)"))
+        fly = build_mueller_zipper_fly(m)
+        pocket = build_mueller_front_pocket(m)
+        return Pattern(pieces=[
+            RasterPiece(
+                name="front",
+                image=front_piece.image,
+                bbox_mm=front_piece.bbox_mm,
+                dpi=front_piece.dpi,
+                labels=front_labels,
+            ),
+            RasterPiece(
+                name="back",
+                image=back_piece.image,
+                bbox_mm=back_piece.bbox_mm,
+                dpi=back_piece.dpi,
+                labels=back_labels,
+            ),
+            build_mueller_waistband(m),
+            fly["shield"],
+            fly["facing"],
+            pocket["pocket_bag"],
+            pocket["pocket_facing"],
+            build_mueller_back_pocket(m),
+            build_mueller_yoke(m),
+            build_mueller_belt_loop(),
+        ])
 
     if style == "mueller2":
         from .draft_mueller import MuellerMeasurements
@@ -161,7 +232,7 @@ def build_full_pattern(m, style: str = "updated") -> Pattern:
         back_pts = build_updated_back(m, front=front_pts.base)
     else:
         raise ValueError(
-            f"unknown style {style!r}; expected 'basic', 'updated', 'mueller', or 'mueller2'"
+            f"unknown style {style!r}; expected 'basic', 'updated', 'mueller', 'mueller2', or 'mueller3'"
         )
 
     front_labels = [(pt, name) for name, pt in front_pts.labeled_points().items()]

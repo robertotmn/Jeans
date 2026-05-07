@@ -14,8 +14,9 @@ import io
 from reportlab.pdfgen import canvas
 from reportlab.lib.units import mm
 from reportlab.lib.pagesizes import A4
+from reportlab.lib.utils import ImageReader
 
-from .pattern import Pattern
+from .pattern import Pattern, PatternPiece, RasterPiece
 
 A4_W_MM = 210.0
 A4_H_MM = 297.0
@@ -44,6 +45,52 @@ def _layout_pieces(pattern: Pattern):
     return placed, total_w, total_h
 
 
+def _draw_vector_piece(c, piece: PatternPiece, ox: float, oy: float, x_origin_mm: float, y_origin_mm: float) -> None:
+    c.setStrokeColorRGB(0, 0, 0)
+    c.setLineWidth(0.3 * mm)
+    path = c.beginPath()
+    first = True
+    for p in piece.outline:
+        x = (p.x + ox + x_origin_mm) * mm
+        y = (-(p.y + oy) + y_origin_mm) * mm    # flip y
+        if first:
+            path.moveTo(x, y)
+            first = False
+        else:
+            path.lineTo(x, y)
+    path.close()
+    c.drawPath(path, stroke=1, fill=0)
+
+    c.setDash(2, 2)
+    c.setStrokeColorRGB(0, 0.5, 0)
+    c.setLineWidth(0.2 * mm)
+    for line in piece.construction_lines:
+        for i in range(len(line) - 1):
+            p1, p2 = line[i], line[i + 1]
+            c.line(
+                (p1.x + ox + x_origin_mm) * mm,
+                (-(p1.y + oy) + y_origin_mm) * mm,
+                (p2.x + ox + x_origin_mm) * mm,
+                (-(p2.y + oy) + y_origin_mm) * mm,
+            )
+    c.setDash()
+    c.setStrokeColorRGB(0, 0, 0)
+
+
+def _draw_raster_piece(c, piece: RasterPiece, ox: float, oy: float, x_origin_mm: float, y_origin_mm: float) -> None:
+    x0, y0, x1, y1 = piece.bbox_mm
+    w_mm = x1 - x0
+    h_mm = y1 - y0
+    x_left = (x0 + ox + x_origin_mm) * mm
+    y_bottom = (-(y1 + oy) + y_origin_mm) * mm
+
+    buf = io.BytesIO()
+    piece.image.save(buf, format="PNG")
+    buf.seek(0)
+    reader = ImageReader(buf)
+    c.drawImage(reader, x_left, y_bottom, width=w_mm * mm, height=h_mm * mm, mask="auto")
+
+
 def _draw_pieces(c, placed, x_origin_mm: float, y_origin_mm: float):
     """Draw all placed pieces onto the canvas, applying an additional
     (x_origin_mm, y_origin_mm) offset (for tile pagination or page margins).
@@ -51,37 +98,10 @@ def _draw_pieces(c, placed, x_origin_mm: float, y_origin_mm: float):
     Note: ReportLab's coordinate origin is bottom-left of the page; our
     pattern coordinates are y-down. We flip y here at draw time."""
     for piece, ox, oy in placed:
-        # Outline polygon
-        c.setStrokeColorRGB(0, 0, 0)
-        c.setLineWidth(0.3 * mm)
-        path = c.beginPath()
-        first = True
-        for p in piece.outline:
-            x = (p.x + ox + x_origin_mm) * mm
-            y = (-(p.y + oy) + y_origin_mm) * mm    # flip y
-            if first:
-                path.moveTo(x, y)
-                first = False
-            else:
-                path.lineTo(x, y)
-        path.close()
-        c.drawPath(path, stroke=1, fill=0)
-
-        # Construction lines (dashed)
-        c.setDash(2, 2)
-        c.setStrokeColorRGB(0, 0.5, 0)
-        c.setLineWidth(0.2 * mm)
-        for line in piece.construction_lines:
-            for i in range(len(line) - 1):
-                p1, p2 = line[i], line[i + 1]
-                c.line(
-                    (p1.x + ox + x_origin_mm) * mm,
-                    (-(p1.y + oy) + y_origin_mm) * mm,
-                    (p2.x + ox + x_origin_mm) * mm,
-                    (-(p2.y + oy) + y_origin_mm) * mm,
-                )
-        c.setDash()
-        c.setStrokeColorRGB(0, 0, 0)
+        if isinstance(piece, RasterPiece):
+            _draw_raster_piece(c, piece, ox, oy, x_origin_mm, y_origin_mm)
+        else:
+            _draw_vector_piece(c, piece, ox, oy, x_origin_mm, y_origin_mm)
 
         # Piece-name label above the piece
         x0, y0, _, _ = piece.bbox()
@@ -105,7 +125,6 @@ def _draw_pieces(c, placed, x_origin_mm: float, y_origin_mm: float):
                 c.drawString(px + 1.5 * mm, py + 0.5 * mm, text)
                 c.setFillColorRGB(0, 0, 0)
             else:
-                # Long labels rendered larger, in black
                 c.setFillColorRGB(0, 0, 0)
                 c.setFont("Helvetica", 8)
                 c.drawString(

@@ -171,3 +171,40 @@ def test_build_full_pattern_mueller2_rejects_landis_measurements(default_measure
     from jeans_pattern.pattern import build_full_pattern
     with pytest.raises(TypeError):
         build_full_pattern(default_measurements, style="mueller2")
+
+
+def test_build_full_pattern_mueller3_includes_accessories():
+    from jeans_pattern.draft_mueller import MuellerMeasurements
+    from jeans_pattern.pattern import build_full_pattern, RasterPiece, PatternPiece
+    m = MuellerMeasurements.from_cm(
+        waistband=90, hip_girth=102, knee_girth=43, hem_width=38,
+        outseam=102, inseam=82,
+    )
+    pat = build_full_pattern(m, style="mueller3")
+    names = {p.name for p in pat}
+    assert names == {
+        "front", "back", "waistband", "fly_shield", "fly_facing",
+        "pocket_bag", "pocket_facing", "back_pocket", "yoke", "belt_loop",
+    }
+    # front and back are RasterPieces; everything else is a vector PatternPiece
+    by_name = {p.name: p for p in pat}
+    assert isinstance(by_name["front"], RasterPiece)
+    assert isinstance(by_name["back"], RasterPiece)
+    for n in ("waistband", "fly_shield", "fly_facing", "pocket_bag", "pocket_facing",
+              "back_pocket", "yoke", "belt_loop"):
+        assert isinstance(by_name[n], PatternPiece)
+
+
+def test_build_full_pattern_mueller3_rejects_landis_measurements(default_measurements):
+    import pytest
+    from jeans_pattern.pattern import build_full_pattern
+    with pytest.raises(TypeError):
+        build_full_pattern(default_measurements, style="mueller3")
+
+
+def test_raster_piece_bbox_api():
+    from PIL import Image
+    from jeans_pattern.pattern import RasterPiece
+    img = Image.new("RGBA", (10, 10), (0, 0, 0, 0))
+    rp = RasterPiece(name="x", image=img, bbox_mm=(0.0, 0.0, 100.0, 200.0), dpi=100.0)
+    assert rp.bbox() == (0.0, 0.0, 100.0, 200.0)
