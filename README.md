@@ -60,5 +60,6 @@ This is an MVP. Some refinements from the J.E. Landis drafting PDF are intention
 - **Pocket placement is approximate**: front pocket bag, pocket facing, and back pocket are emitted as standalone rectangles. Precise placement on the front/back pieces (per PDF pages 17-18) is the user's responsibility when sewing.
 - **No notches or grainline indicators**: the cut outlines are clean polygons without sewing notches or fabric-grain marks. Add these manually on the printed pattern.
 - **All seam allowances are included** in the cut outlines (3/8" everywhere except 5/8" on yoke and center back seat seam — per PDF page 4).
+- **Outseam length tolerance front-vs-back ~6 mm (~1/4")**: Landis's basic draft (PDF pp. 10-13 step 3) prescribes the back outseam as a single straight line through W-U-R-Y, while the front outseam has the 2" hip extension at G plus the I→G fly curve. This produces an inherent ~6 mm front-longer-than-back mismatch that falls within standard ~1/4" sewing ease — eased in during outseam construction. Not a bug in the implementation: it reflects the source draft.
 
 For now this means a competent sewist may need to fair the curves by eye on the printed pattern. None of these limitations prevent the cartamodello from being usable for cutting and sewing a wearable pair of jeans.

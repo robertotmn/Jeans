@@ -68,8 +68,9 @@ def test_back_extension_distances(default_measurements):
     assert abs(back.R.x - back.B.x) == pytest.approx(1 * INCH)
     # G-S = seat/16 (extension oltre G verso outseam = right)
     assert (back.S.x - back.G.x) == pytest.approx(44.0 / 16 * INCH)
-    # Z = I + (waist/4 + 2") (Excel formula B18: =D2+2 = waist/4 + 2)
-    assert (back.Z.x - back.I.x) == pytest.approx(34.5 / 4 * INCH + 2 * INCH)
+    # Y-Z = waist/4 + 2" (Excel formula B18: =D2+2 = waist/4 + 2 e' la lunghezza
+    # della vita posteriore lungo la waist line, da Y a Z).
+    assert (back.Z.x - back.Y.x) == pytest.approx(34.5 / 4 * INCH + 2 * INCH)
 
 
 def test_back_outline_closed(default_measurements):
@@ -84,8 +85,8 @@ def test_back_excel_calculator_values(default_measurements):
     b = build_basic_back(default_measurements)
     # G-S extension
     assert (b.S.x - b.G.x) == pytest.approx(44.0 / 16 * INCH)   # = 69.85 mm
-    # Y-Z = waist/4 + 2"
-    assert (b.Z.x - b.I.x) == pytest.approx(34.5 / 4 * INCH + 2 * INCH)  # 269.875 mm
+    # Y-Z = waist/4 + 2" (lunghezza vita posteriore, lungo la waist line)
+    assert (b.Z.x - b.Y.x) == pytest.approx(34.5 / 4 * INCH + 2 * INCH)  # 269.875 mm
     # Outward translations 1" = 25.4 mm
     assert abs(b.R.x - b.B.x) == pytest.approx(INCH)
     assert abs(b.U.x - b.O.x) == pytest.approx(INCH)

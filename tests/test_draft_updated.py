@@ -38,14 +38,24 @@ def test_updated_back_T_moved_down(default_measurements):
     base = build_basic_back(default_measurements)
     assert b.T_new.y > base.T.y + 1.5 * INCH
 
-def test_updated_back_Y_at_new_waist_height(default_measurements):
-    """Y_new is on the W-R outseam at the new (raised) waist line."""
+def test_updated_back_Y_on_basic_waist(default_measurements):
+    """Il back body si ferma sulla vita base (y=0); il yoke e' un pezzo separato.
+    Y resta sulla intersezione W-R con la vita base, non sulla vita rialzata."""
     b = build_updated_back(default_measurements)
-    assert b.Y.y == pytest.approx(b.X.y)
+    base = build_basic_back(default_measurements)
+    assert b.Y.x == pytest.approx(base.Y.x)
+    assert b.Y.y == pytest.approx(base.Y.y)
 
-def test_updated_back_Z_at_new_waist_height(default_measurements):
-    """Z_new keeps its x position but follows the raised waist line up to X.y."""
+def test_updated_back_Z_on_basic_waist(default_measurements):
+    """Z resta sulla vita base (y=0); la regione yoke sopra la vita e' separata."""
     b = build_updated_back(default_measurements)
     base = build_basic_back(default_measurements)
     assert b.Z.x == pytest.approx(base.Z.x)
-    assert b.Z.y == pytest.approx(b.X.y)
+    assert b.Z.y == pytest.approx(base.Z.y)
+
+def test_updated_back_X_remains_construction_point(default_measurements):
+    """new_X resta sopra I di seat/10 come riferimento yoke, anche se il back
+    body non si estende fino a quella altezza."""
+    b = build_updated_back(default_measurements)
+    base = build_basic_back(default_measurements)
+    assert b.X.y == pytest.approx(base.I.y - 44.0/10 * INCH)

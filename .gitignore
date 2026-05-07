@@ -15,3 +15,6 @@ dist/
 verification_*.pdf
 test_*.pdf
 test_*.svg
+# user-generated exports at repo root
+/jeans_pattern.pdf
+/jeans_pattern.svg

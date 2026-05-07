@@ -86,14 +86,23 @@ class UpdatedFront:
             bow_mm=3.0, perp_x=0, perp_y=1, n=12,
         )
 
-        # Fly curve new_I -> G "via AA". AA is used as a Bezier CONTROL POINT
-        # (a French-curve waypoint that pulls the curve toward it), not a literal
-        # knot — passing through AA literally would force a loop because AA sits
-        # below G by seat/16 while G is the curve's intended endpoint at the hip.
-        # A quadratic Bezier with control AA gives the front-crotch its "J"
-        # bulge without crossing back below the hip line.
-        from .geometry import bezier_curve as quadratic_bezier
-        fly_curve = quadratic_bezier(self.new_I, self.AA, b.G, n=24)
+        # Fly curve new_I -> G. Tangenti analoghe al basic per evitare di
+        # gonfiare la cucitura outseam: verticale a new_I, lungo G->M a G.
+        # AA (seat/16 sotto F) resta come construction landmark ma NON viene
+        # usata come control point del Bezier: usarla come control come prima
+        # tirava la curva ~32 mm sotto la linea hip, allungando l'outseam front
+        # rispetto al back e rendendo i due lati non cucibili.
+        outseam_dx = b.M.x - b.G.x
+        outseam_dy = b.M.y - b.G.y
+        fly_chord_len = ((b.G.x - self.new_I.x) ** 2 + (b.G.y - self.new_I.y) ** 2) ** 0.5
+        fly_curve = cubic_with_tangents(
+            self.new_I, b.G,
+            t_start=(0.0, 1.0),
+            t_end=(outseam_dx, outseam_dy),
+            alpha=fly_chord_len * 0.50,
+            beta=fly_chord_len * 0.40,
+            n=20,
+        )
 
         # Front thigh hollow L -> B (3/4" = ~19mm, PDF p.23 step 12). Tangent
         # at L matches the hem (straight horizontal at L going right doesn't
@@ -211,12 +220,13 @@ class UpdatedBack:
         return self.new_Z
 
     def outline_polygon(self) -> list[Point]:
-        """Updated 501 back outline (CW traversal in y-down screen coords).
+        """Updated 501 back BODY outline (CW traversal in y-down screen coords).
 
         Same structural sequence as the basic back (PDF pages 10-13) plus the
         updated 501 refinements (PDF pages 19-23):
-        - I raised to new_X by seat/10, then waist line redrawn through new_X
-          (so new_Y and new_Z sit on the new, raised waist).
+        - I-X = seat/10 e' il riferimento del yoke; il yoke (build_yoke) e' un
+          pezzo separato sopra la vita base. Il back body resta sulla vita base
+          (y=0) per cucibilita' con il front.
         - Back thigh hollow 1" on the V-T-S inseam (step 12, page 23).
         - Hem perpendicular to outseam: T_new replaces T (steps 8-10, page 22).
 
@@ -356,14 +366,19 @@ def build_updated_back(m: Measurements,
                        front: FrontPoints | None = None) -> UpdatedBack:
     base = build_basic_back(m, front=front)
 
-    # I-X = seat/10, sopra I (y decreases)
+    # I-X = seat/10, sopra I (y decreases). X e' il punto di costruzione
+    # del YOKE (cucitura yoke posteriore), NON il bordo superiore del back body.
+    # Il back body si ferma sulla vita base (y=0): il yoke e' un pezzo separato
+    # gestito da build_yoke. Senza questa distinzione il back outline includerebbe
+    # la regione yoke (raise di seat/10 = ~98mm) e la cucitura outseam back
+    # risulterebbe ~98mm piu' lunga del front, rendendo il pattern non cucibile.
     new_X = Point(base.I.x, base.I.y - m.seat_mm / 10)
 
-    # Y-Z redrawn through the new X. Z keeps its x but moves up to X's y.
-    new_waist_y = new_X.y
-    waist_p1, waist_p2 = horizontal_line_through(new_waist_y)
-    Y_new = line_intersection(base.W, base.R, waist_p1, waist_p2)
-    Z_new = Point(base.Z.x, new_waist_y)
+    # Y e Z restano sulla vita base (y=base.A.y=0): il back body sews al yoke
+    # lungo la vita base. new_X e' tracciato come construction line per indicare
+    # dove arriverebbe il yoke se assemblato.
+    Y_new = base.Y
+    Z_new = base.Z
 
     # T_new: perpendicular from V to knee line, then 2" along outseam V->S
     # (V is the hem-outseam back point; S is the seat extension; outseam V->S goes upward toward S)

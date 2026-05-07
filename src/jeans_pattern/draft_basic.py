@@ -301,8 +301,9 @@ def build_basic_back(m: Measurements, front: FrontPoints | None = None) -> BackP
     waist_p1, waist_p2 = horizontal_line_through(front.A.y)
     Y = line_intersection(W, R, waist_p1, waist_p2)
 
-    # Z = waist/4 + 2" da I sulla waist line (verso destra = outseam side)
-    Z = square_out(front.I, m.waist_mm / 4 + 2 * INCH, "right")
+    # Z = waist/4 + 2" da Y lungo la waist line (verso destra = lato cucitura
+    # del cavallo posteriore). Y-Z e' la lunghezza della vita posteriore.
+    Z = square_out(Y, m.waist_mm / 4 + 2 * INCH, "right")
 
     return BackPoints(
         B=front.B, R=R, G=front.G, S=S,

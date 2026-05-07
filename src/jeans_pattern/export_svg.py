@@ -12,14 +12,14 @@ def pattern_to_svg(pattern: Pattern, gap_mm: float = 30.0) -> bytes:
     spacing. Each piece keeps its native coordinates, translated to start at
     (cursor_x, 0). The bounding box of each piece is computed via PatternPiece.bbox().
     """
-    TOP_MARGIN_MM = 15.0
-    BOTTOM_MARGIN_MM = 35.0
+    TOP_MARGIN_MM = 60.0      # spazio sopra: nome pezzo + lettura bordi
+    BOTTOM_MARGIN_MM = 60.0   # spazio sotto: lettura bordi inferiori
+    SIDE_MARGIN_MM = 50.0     # spazio laterale ai due estremi del foglio
 
     # Compute placement: cursor_x advances by piece width + gap
     placed = []
-    cursor_x = 0.0
+    cursor_x = SIDE_MARGIN_MM
     max_y_used = 0.0
-    min_y_used = 0.0
 
     for piece in pattern:
         x0, y0, x1, y1 = piece.bbox()
@@ -29,7 +29,8 @@ def pattern_to_svg(pattern: Pattern, gap_mm: float = 30.0) -> bytes:
         cursor_x += (x1 - x0) + gap_mm
         max_y_used = max(max_y_used, y1 - y0)
 
-    total_w = max(cursor_x, 100.0)
+    # rimuovi l'ultimo gap aggiunto e includi il margine laterale destro
+    total_w = max(cursor_x - gap_mm + SIDE_MARGIN_MM, 100.0)
     total_h = TOP_MARGIN_MM + max_y_used + BOTTOM_MARGIN_MM
 
     dwg = svgwrite.Drawing(
@@ -64,12 +65,12 @@ def pattern_to_svg(pattern: Pattern, gap_mm: float = 30.0) -> bytes:
             y = pt.y + oy
             # Short letter-style labels get a marker dot
             if len(text) <= 3:
-                dwg.add(dwg.circle(center=(x, y), r=1.0, fill="red", stroke="none"))
-                # Offset the text slightly so it doesn't overlap the dot
+                dwg.add(dwg.circle(center=(x, y), r=4.0, fill="red", stroke="none"))
+                # Offset the text proportionally so it doesn't overlap the dot
                 dwg.add(dwg.text(
                     text,
-                    insert=(x + 2, y - 2),
-                    font_size="6",
+                    insert=(x + 8, y - 8),
+                    font_size="24",
                     fill="red",
                 ))
             else:
