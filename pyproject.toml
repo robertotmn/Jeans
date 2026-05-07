@@ -11,7 +11,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8", "pytest-qt>=4.4", "pyinstaller>=6.10"]
+dev = ["pytest>=8", "pytest-qt>=4.4", "pyinstaller>=6.10", "pymupdf>=1.24"]
 
 [project.scripts]
 jeans-app = "jeans_app.main:main"
