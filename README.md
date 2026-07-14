@@ -1,22 +1,55 @@
-# Selvedge Jeans Pattern App
+# M&S Jeans Pattern App
 
-Desktop application (Windows + macOS) that generates a custom selvedge denim jeans pattern from body measurements and exports it to PDF/SVG at 1:1 scale for use with a pattern projector.
+Applicazione desktop (Windows + macOS) che genera il cartamodello su misura del
+jeans classico da uomo a 5 tasche e lo esporta in PDF/SVG in scala 1:1 (per
+proiettore da cartamodelli o plotter).
 
-## Status
+## Metodo di tracciamento
 
-Under development. See `docs/superpowers/plans/2026-05-03-jeans-pattern-app.md` for the full implementation plan.
+Il tracciato segue **"Metric Pattern Techniques – Jeans-Basics" di
+M. Müller & Sohn**: Basic Jeans Block (pp. 2–3) + Design 3069 (pp. 4–5),
+`docs/source-spec/Metric-pattern-techniques_Jeans-Basics.pdf`.
 
-## Sources
+Le pagine del fascicolo sono disegnate in scala (taglia 50):
+`scripts/extract_ms_reference.py` ne estrae la geometria vettoriale in
+`tests/data/ms_reference_size50.json` e la suite di test verifica che ogni
+landmark del tracciato generato coincida col disegno del libro entro ~1.5 mm
+(curve entro ~2.5 mm). Le regole di costruzione e le costanti di forma delle
+curve sono documentate in `src/jeans_pattern/draft_ms.py` e nel piano
+`docs/superpowers/plans/2026-07-15-ms-jeans-draft.md`.
 
-The drafting rules are based on:
-- `docs/source-spec/drafting_selvedge_jeans.pdf` — instructions by J.E. Landis (2024)
-- `docs/source-spec/SelvedgeJeansCalculatorMaster.xlsx` — formula calculator
+## Misure richieste (chart M&S, default = taglia 50)
 
-## Development
+| Sigla | Misura | Default |
+|---|---|---|
+| W  | giro vita (waistband) | 90 cm |
+| Hg | giro fianchi | 102 cm |
+| Kg | giro ginocchio | 43 cm |
+| Hw | giro fondo gamba | 38 cm |
+| Os | lunghezza esterna (outseam) | 102 cm |
+| Is | lunghezza interna (inseam) | 82 cm |
+
+Derivate automaticamente: cavallo `Br = Os − Is`, altezza ginocchio
+`Kl = Is/2 + Is/10 − 2`, larghezze Ftw/Fcw/Btw/Bcw da Hg.
+
+## Pezzi generati (Design 3069)
+
+davanti ×2 · dietro ×2 · carré ×2 (pinces chiuse) · cinturino (con tacche
+c.f./tasca/fianco/c.b. e segni passanti) · tasca posteriore · sacchetto e
+paramontura tasca davanti · paramontura e scudo patta zip* · taschino
+porta-monete* · striscia passanti — (*pezzi derivati, non tracciati nel
+fascicolo).
+
+Ogni pezzo riporta la **linea netta** (tratteggiata) e la **linea di taglio**
+(continua) con margini configurabili nel form: default 1 cm sulle cuciture e
+3 cm all'orlo; 0 = solo linee nette. Sotto il form compaiono i valori derivati
+e le verifiche del libro (agio fianchi, resto vita) con eventuali avvisi.
+
+## Sviluppo
 
 ```bash
 python -m venv .venv
-source .venv/Scripts/activate    # Windows bash; on macOS: source .venv/bin/activate
+source .venv/Scripts/activate    # Windows bash; su macOS: source .venv/bin/activate
 pip install -e ".[dev]"
 pytest
 python -m jeans_app.main          # GUI
@@ -24,42 +57,35 @@ python -m jeans_app.main          # GUI
 
 ## Packaging
 
-PyInstaller specs are provided in `packaging/`. Build natively on each target:
-
 ```bash
-# On Windows:
-pyinstaller packaging/pyinstaller_win.spec --noconfirm
-# Output: dist/SelvedgeJeansPattern.exe
-
-# On macOS:
-pyinstaller packaging/pyinstaller_mac.spec --noconfirm
-# Output: dist/SelvedgeJeansPattern.app
+# Windows:
+pyinstaller packaging/pyinstaller_win.spec --noconfirm   # dist/SelvedgeJeansPattern.exe
+# macOS:
+pyinstaller packaging/pyinstaller_mac.spec --noconfirm   # dist/SelvedgeJeansPattern.app
 ```
 
-## Pattern Projector Workflow
+## Uso con proiettore da cartamodelli
 
-To use the generated cartamodello with a pattern projector:
+1. **Esporta PDF (singola pagina)** — un unico PDF (~3.2 m × 1.3 m) in scala
+   1:1 con quadrato di calibrazione 10×10 cm in alto a sinistra.
+2. Apri il PDF nel software del proiettore (Pattern Projector, ecc.).
+3. Calibra col quadrato: proiettato sul tessuto deve misurare esattamente
+   10×10 cm.
+4. Proietta e ricalca i pezzi (la linea continua è quella di taglio).
 
-1. Click **Esporta PDF (singola pagina)** — produces a single large PDF (~3.5m x 1.6m for default measurements) at 1:1 scale with a 10x10 cm calibration square in the top-left corner.
-2. Open the PDF in your projector software (Pattern Projector web app, Sherline Patternizer, etc.).
-3. Calibrate using the 10x10 cm square: project it onto fabric and measure with a ruler. The measured square must be exactly 10x10 cm.
-4. Once calibrated, project the pieces onto your fabric and trace each outline.
+**Non stampare il PDF singolo su A4**: i viewer lo scalano silenziosamente.
+In alternativa usa **Esporta PDF (tile A4)** e assembla i fogli con i
+crocini d'angolo, oppure un plotter che rispetti le dimensioni native.
 
-**Note:** Do NOT print the single-page PDF on standard letter/A4 paper — most viewers (Adobe Acrobat, Apple Preview) will silently scale it to fit the page, breaking the 1:1 calibration. Either:
-- Use the **tiled A4** export to print across multiple A4 sheets and assemble (corner alignment markers are provided), OR
-- Send the single-page PDF to a plotter/large-format printer that respects native dimensions, OR
-- Use the single-page PDF with a calibrated pattern projector (verify the 10x10 cm square first).
+## Limiti noti
 
-## Limitations (MVP scope)
-
-This is an MVP. Some refinements from the J.E. Landis drafting PDF are intentionally deferred:
-
-- **Curves rendered as straight chords**: the fly curve I-AA-G, the hip curve B-H, and the back seat curve S-Z are currently drawn as straight line segments. The control points are tracked internally (e.g. AA, the fly curve waypoint at seat/16 below F) so a future version can sample smooth Bezier paths.
-- **Hem is horizontal, not perpendicular to outseam**: the updated 501 draft prescribes a hem perpendicular to the (now-slanted) outseam; current output uses the basic horizontal hem.
-- **Thigh is not hollowed**: the updated draft hollows the front thigh by 3/4" and the back thigh by 1" for a tapered fit. Currently the thigh edge is straight from G/S to P/T.
-- **Pocket placement is approximate**: front pocket bag, pocket facing, and back pocket are emitted as standalone rectangles. Precise placement on the front/back pieces (per PDF pages 17-18) is the user's responsibility when sewing.
-- **No notches or grainline indicators**: the cut outlines are clean polygons without sewing notches or fabric-grain marks. Add these manually on the printed pattern.
-- **All seam allowances are included** in the cut outlines (3/8" everywhere except 5/8" on yoke and center back seat seam — per PDF page 4).
-- **Outseam length tolerance front-vs-back ~6 mm (~1/4")**: Landis's basic draft (PDF pp. 10-13 step 3) prescribes the back outseam as a single straight line through W-U-R-Y, while the front outseam has the 2" hip extension at G plus the I→G fly curve. This produces an inherent ~6 mm front-longer-than-back mismatch that falls within standard ~1/4" sewing ease — eased in during outseam construction. Not a bug in the implementation: it reflects the source draft.
-
-For now this means a competent sewist may need to fair the curves by eye on the printed pattern. None of these limitations prevent the cartamodello from being usable for cutting and sewing a wearable pair of jeans.
+- Paramontura/scudo patta e taschino porta-monete sono pezzi standard derivati,
+  non tracciati nel fascicolo M&S.
+- L'inizio dello scasso tasca è a 13 cm dall'angolo fianco lungo la vita, come
+  nel disegno di pagina 5 e nella tacca del cinturino del libro (la quota
+  stampata "12" non trova riscontro esatto nell'illustrazione).
+- Il disegno di pagina 5 prevede di raccordare il fianco davanti con 6 mm in
+  più all'ingresso tasca ("add width"): il contorno del davanti resta quello
+  del block; l'estensione è indicata dal segno dello scasso.
+- Tacche di montaggio limitate a cinturino e segni tasca; nessuna gradazione
+  automatica delle taglie.

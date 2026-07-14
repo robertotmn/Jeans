@@ -20,10 +20,14 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setCentralWidget(central)
         h = QtWidgets.QHBoxLayout(central)
 
-        # ----- Left column: form + buttons --------------------------------
+        # ----- Left column: form + report + buttons ------------------------
         left = QtWidgets.QVBoxLayout()
         self.form = MeasurementForm()
         left.addWidget(self.form)
+
+        self.info_label = QtWidgets.QLabel("")
+        self.info_label.setWordWrap(True)
+        left.addWidget(self.info_label)
 
         btn_pdf_single = QtWidgets.QPushButton("Esporta PDF (singola pagina)")
         btn_pdf_tiled = QtWidgets.QPushButton("Esporta PDF (tile A4)")
@@ -54,15 +58,30 @@ class MainWindow(QtWidgets.QMainWindow):
     # ----- Internal helpers ----------------------------------------------
 
     def _build_pattern(self):
-        return build_full_pattern(self.form.to_measurements())
+        return build_full_pattern(self.form.to_measurements(), self.form.seam_allowances())
 
     def _refresh_preview(self) -> None:
         try:
             pat = self._build_pattern()
             svg = pattern_to_svg(pat)
             self.preview.update_svg(svg)
+            self._show_report(pat.report)
         except Exception as e:
             QMessageBox.warning(self, "Errore preview", str(e))
+
+    def _show_report(self, r: dict) -> None:
+        text = (
+            f"Cavallo Br: {r['body_rise_mm'] / 10:.1f} cm  ·  "
+            f"Alt. ginocchio Kl: {r['knee_length_mm'] / 10:.1f} cm\n"
+            f"Agio fianchi: {r['hip_ease_mm'] / 10:.1f} cm  ·  "
+            f"Resto vita dietro: {r['waist_rest_mm'] / 10:.1f} cm"
+        )
+        if r["warnings"]:
+            text += "\n⚠ " + "\n⚠ ".join(r["warnings"])
+            self.info_label.setStyleSheet("color: #b00;")
+        else:
+            self.info_label.setStyleSheet("")
+        self.info_label.setText(text)
 
     def _export_pdf(self, mode: str) -> None:
         path, _ = QFileDialog.getSaveFileName(

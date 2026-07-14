@@ -40,13 +40,21 @@ def pattern_to_svg(pattern: Pattern, gap_mm: float = 30.0) -> bytes:
     )
 
     for piece, ox, oy in placed:
-        pts = [(p.x + ox, p.y + oy) for p in piece.outline]
-        dwg.add(dwg.polygon(
-            points=pts,
-            fill="none",
-            stroke="black",
-            stroke_width=0.3,
-        ))
+        # cut line (solid, the one to trace/cut); net seam line dashed inside
+        if piece.cut_outline:
+            dwg.add(dwg.polygon(
+                points=[(p.x + ox, p.y + oy) for p in piece.cut_outline],
+                fill="none", stroke="black", stroke_width=0.3,
+            ))
+            dwg.add(dwg.polygon(
+                points=[(p.x + ox, p.y + oy) for p in piece.outline],
+                fill="none", stroke="dimgray", stroke_dasharray="4,2", stroke_width=0.2,
+            ))
+        else:
+            dwg.add(dwg.polygon(
+                points=[(p.x + ox, p.y + oy) for p in piece.outline],
+                fill="none", stroke="black", stroke_width=0.3,
+            ))
 
         for line in piece.construction_lines:
             d_pts = [(p.x + ox, p.y + oy) for p in line]

@@ -1,11 +1,12 @@
 """Measurement input form for the M. Mueller & Sohn jeans draft.
 
-Six body measurements (chart page 2), entered in cm or inch. Values are
-converted in place when the unit changes.
+Six body measurements (chart page 2) plus the two seam-allowance values,
+entered in cm or inch. Values are converted in place when the unit changes.
 """
 from PySide6 import QtWidgets, QtCore
 
 from jeans_pattern.measurements import Measurements
+from jeans_pattern.pattern import SeamAllowances
 
 FIELDS = [
     ("waistband", "Waistband W (giro vita)"),
@@ -20,6 +21,13 @@ DEFAULTS_CM = {
     "waistband": 90.0, "hip_girth": 102.0, "knee_girth": 43.0, "hem_width": 38.0,
     "outseam": 102.0, "inseam": 82.0,
 }
+
+SA_FIELDS = [
+    ("sa_seam", "Margine cuciture"),
+    ("sa_hem", "Margine orlo"),
+]
+
+SA_DEFAULTS_CM = {"sa_seam": 1.0, "sa_hem": 3.0}
 
 CM_PER_INCH = 2.54
 
@@ -51,6 +59,17 @@ class MeasurementForm(QtWidgets.QWidget):
             self._spinboxes[key] = sb
             layout.addRow(label, sb)
 
+        # Seam allowances (0 = net pattern only); converted with the unit too
+        for key, label in SA_FIELDS:
+            sb = QtWidgets.QDoubleSpinBox()
+            sb.setRange(0.0, 100.0)
+            sb.setDecimals(3)
+            sb.setSingleStep(0.5)
+            sb.setValue(SA_DEFAULTS_CM[key])
+            sb.valueChanged.connect(self._on_value_changed)
+            self._spinboxes[key] = sb
+            layout.addRow(label, sb)
+
     # ----- Public API ----------------------------------------------------
 
     def unit(self) -> str:
@@ -70,6 +89,13 @@ class MeasurementForm(QtWidgets.QWidget):
         if self._unit == "inch":
             return Measurements.from_inches(**vals)
         return Measurements.from_cm(**vals)
+
+    def seam_allowances(self) -> SeamAllowances:
+        factor = 25.4 if self._unit == "inch" else 10.0
+        return SeamAllowances(
+            seam_mm=self._spinboxes["sa_seam"].value() * factor,
+            hem_mm=self._spinboxes["sa_hem"].value() * factor,
+        )
 
     # ----- Internal handlers ---------------------------------------------
 

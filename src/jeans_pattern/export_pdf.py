@@ -44,12 +44,10 @@ def _layout_pieces(pattern: Pattern):
     return placed, total_w, total_h
 
 
-def _draw_vector_piece(c, piece: PatternPiece, ox: float, oy: float, x_origin_mm: float, y_origin_mm: float) -> None:
-    c.setStrokeColorRGB(0, 0, 0)
-    c.setLineWidth(0.3 * mm)
+def _draw_polygon(c, pts, ox, oy, x_origin_mm, y_origin_mm):
     path = c.beginPath()
     first = True
-    for p in piece.outline:
+    for p in pts:
         x = (p.x + ox + x_origin_mm) * mm
         y = (-(p.y + oy) + y_origin_mm) * mm    # flip y
         if first:
@@ -59,6 +57,22 @@ def _draw_vector_piece(c, piece: PatternPiece, ox: float, oy: float, x_origin_mm
             path.lineTo(x, y)
     path.close()
     c.drawPath(path, stroke=1, fill=0)
+
+
+def _draw_vector_piece(c, piece: PatternPiece, ox: float, oy: float, x_origin_mm: float, y_origin_mm: float) -> None:
+    # cut line (solid, the one to trace/cut); net seam line dashed inside
+    c.setStrokeColorRGB(0, 0, 0)
+    c.setLineWidth(0.3 * mm)
+    if piece.cut_outline:
+        _draw_polygon(c, piece.cut_outline, ox, oy, x_origin_mm, y_origin_mm)
+        c.setDash(4, 2)
+        c.setStrokeColorRGB(0.35, 0.35, 0.35)
+        c.setLineWidth(0.2 * mm)
+        _draw_polygon(c, piece.outline, ox, oy, x_origin_mm, y_origin_mm)
+        c.setDash()
+        c.setStrokeColorRGB(0, 0, 0)
+    else:
+        _draw_polygon(c, piece.outline, ox, oy, x_origin_mm, y_origin_mm)
 
     c.setDash(2, 2)
     c.setStrokeColorRGB(0, 0.5, 0)

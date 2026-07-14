@@ -53,3 +53,23 @@ def test_form_unit_toggle_converts_values(form):
 def test_form_unknown_key_raises(form):
     with pytest.raises(KeyError):
         form.set_value("waist", 90.0)
+
+
+def test_form_seam_allowance_defaults(form):
+    sa = form.seam_allowances()
+    assert sa.seam_mm == pytest.approx(10.0)
+    assert sa.hem_mm == pytest.approx(30.0)
+
+
+def test_form_seam_allowance_converts_with_unit(form):
+    form.set_unit("inch")
+    sa = form.seam_allowances()
+    # 1.0 cm -> 0.3937 inch shown; converted back = 10 mm
+    assert sa.seam_mm == pytest.approx(10.0, abs=0.05)
+    assert sa.hem_mm == pytest.approx(30.0, abs=0.05)
+
+
+def test_form_zero_allowances_disable_cut_line(form):
+    form.set_value("sa_seam", 0.0)
+    form.set_value("sa_hem", 0.0)
+    assert not form.seam_allowances().enabled
