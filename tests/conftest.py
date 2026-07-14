@@ -1,8 +1,38 @@
+import json
+import math
+import pathlib
+
 import pytest
 
 from jeans_pattern.geometry import Point
 from jeans_pattern.measurements import Measurements
 from jeans_pattern.pattern import Pattern, PatternPiece
+
+REFERENCE_PATH = pathlib.Path(__file__).parent / "data" / "ms_reference_size50.json"
+
+
+@pytest.fixture(scope="session")
+def reference():
+    """Size-50 ground truth measured from the booklet's scale drawing."""
+    return json.loads(REFERENCE_PATH.read_text(encoding="utf-8"))
+
+
+def max_deviation_to_polyline(gen: list[Point], ref_pts: list[list[float]]) -> float:
+    """Max over generated points of the distance to the reference polyline."""
+    ref = [Point(*p) for p in ref_pts]
+
+    def d_pt(p: Point) -> float:
+        best = float("inf")
+        for a, b in zip(ref, ref[1:]):
+            vx, vy = b.x - a.x, b.y - a.y
+            L2 = vx * vx + vy * vy
+            if L2 < 1e-12:
+                continue
+            t = max(0.0, min(1.0, ((p.x - a.x) * vx + (p.y - a.y) * vy) / L2))
+            best = min(best, math.hypot(p.x - a.x - t * vx, p.y - a.y - t * vy))
+        return best
+
+    return max(d_pt(p) for p in gen)
 
 
 @pytest.fixture
