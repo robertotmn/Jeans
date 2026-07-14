@@ -55,6 +55,10 @@ pytest
 python -m jeans_app.main          # GUI
 ```
 
+Dopo modifiche al tracciato, oltre a `pytest`, genera l'overlay
+generato-vs-libro con `python scripts/verify_ms_overlay.py`
+(`verification_ms_size50.pdf`: rosso = libro, blu = generato).
+
 ## Packaging
 
 ```bash
