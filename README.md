@@ -41,9 +41,10 @@ porta-monete* · striscia passanti — (*pezzi derivati, non tracciati nel
 fascicolo).
 
 Ogni pezzo riporta la **linea netta** (tratteggiata) e la **linea di taglio**
-(continua) con margini configurabili nel form: default 1 cm sulle cuciture e
-3 cm all'orlo; 0 = solo linee nette. Sotto il form compaiono i valori derivati
-e le verifiche del libro (agio fianchi, resto vita) con eventuali avvisi.
+(continua) con margini configurabili nel form: default 1.5 cm sulle cuciture
+e 3 cm all'orlo; 0 = solo linee nette. Sotto il form compaiono i valori
+derivati e le verifiche del libro (agio fianchi, resto vita) con eventuali
+avvisi.
 
 ## Sviluppo
 

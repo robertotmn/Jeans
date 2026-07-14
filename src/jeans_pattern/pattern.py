@@ -27,7 +27,7 @@ from .measurements import Measurements
 class SeamAllowances:
     """Cut-line configuration: hem edges get hem_mm, every other edge seam_mm.
     Set both to 0 to export the net pattern only."""
-    seam_mm: float = 10.0
+    seam_mm: float = 15.0
     hem_mm: float = 30.0
 
     @property

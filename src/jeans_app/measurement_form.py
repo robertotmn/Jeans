@@ -27,7 +27,7 @@ SA_FIELDS = [
     ("sa_hem", "Margine orlo"),
 ]
 
-SA_DEFAULTS_CM = {"sa_seam": 1.0, "sa_hem": 3.0}
+SA_DEFAULTS_CM = {"sa_seam": 1.5, "sa_hem": 3.0}
 
 CM_PER_INCH = 2.54
 
