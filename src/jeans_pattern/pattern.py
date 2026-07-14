@@ -137,6 +137,11 @@ def build_full_pattern(m: Measurements, sa: SeamAllowances | None = None) -> Pat
 
     ease = front.report["hip_width_a_mm"] + back.report["hip_width_b_mm"] - m.hip_girth_mm / 2
     warnings = list(back.report["warnings"])
+    if front.report["cf_taper_clamped"]:
+        warnings.append(
+            "giro vita molto fuori proporzione rispetto ai fianchi: "
+            "il davanti ha esaurito la regolazione al c.f., il resto va sul dietro"
+        )
     if ease < 10.0:
         warnings.append(
             f"agio fianchi {ease / 10:.1f} cm < 1 cm: usare tessuto elasticizzato (M&S p. 4)"

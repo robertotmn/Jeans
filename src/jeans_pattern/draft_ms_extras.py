@@ -243,13 +243,15 @@ def build_front_pocket_facing(m: Measurements, front: FrontDraft) -> PieceDraft:
     from_top = front.edge("outseam")[::-1]
     s2 = point_at_arc_length(waist, POCKET_OPENING_FROM_SIDE_MM + 45.0)
     e2 = point_at_arc_length(from_top, POCKET_OPENING_SIDE_DEPTH_MM + 45.0)
-    deepest = max(opening, key=lambda p: p.y)
-    clearance = Point(deepest.x, deepest.y + 45.0)
+    # inner edge: the opening shifted 45 mm straight down (cannot cross the
+    # opening by construction), clipped clear of the e2/s2 connectors
+    shifted = [Point(p.x, p.y + 45.0) for p in opening
+               if e2.x + 5.0 < p.x < s2.x - 5.0]
     edges = [
         ("waist", [s2, opening[0]]),
         ("opening", opening),
         ("side", [opening[-1], e2]),
-        ("inner", [e2, clearance, s2]),
+        ("inner", [e2] + shifted[::-1] + [s2]),
     ]
     return PieceDraft(
         name="paramontura_tasca",

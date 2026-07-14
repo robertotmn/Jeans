@@ -26,6 +26,19 @@ from .geometry import (
 )
 from .measurements import Measurements
 
+# ---- waist distribution ----------------------------------------------------
+# The booklet trues the ENTIRE waist on the back piece (back waist = W/2 + 2
+# minus the front waist), which is fine only while W and Hg keep the chart
+# proportion (size 50: W 90 / Hg 102, i.e. W = Hg - 12 cm). For custom
+# measurements we split the deviation from that proportion half/half: the
+# front absorbs delta = (W - (Hg - 12 cm)) / 4 by adjusting the c.f. taper
+# (1.5 cm in the book), the back picks up the rest via the book rule.
+# At the chart proportion delta = 0 and the draft is exactly the book's.
+CF_TAPER_MM = 15.0
+# negative taper = c.f. widened beyond the hip vertical (belly room)
+CF_TAPER_MIN_MM, CF_TAPER_MAX_MM = -20.0, 35.0
+W_STD_OFFSET_MM = 120.0          # chart: W = Hg - 12 cm
+
 # ---- calibrated curve-shape constants (size-50 drawing fit) ---------------
 # waist: cubic, start tangent = chord rotated +6 deg, end tangent perpendicular
 # to the c.f. line; control distances 0.40/0.20 of the chord. Fit: 0.8 mm.
@@ -129,8 +142,12 @@ def draft_front(m: Measurements) -> FrontDraft:
     crotch_pt = line_intersection(knee_in, fcw_pt, Point(0, crotch_y), Point(100, crotch_y))
     guide_top = Point(0.0, (hip_y + crotch_y) / 2)
 
-    # 5. waist: c.f. lowered 1 cm and tapered 1.5 cm; outseam side tapered 1 cm
-    waist_cf = Point(ftw - 15.0, 10.0)
+    # 5. waist: c.f. lowered 1 cm; outseam side tapered 1 cm. The c.f. taper
+    # (1.5 cm in the book) absorbs the front's half of the waist deviation
+    # from the chart proportion (see the waist-distribution note above).
+    delta = (m.waistband_mm - (m.hip_girth_mm - W_STD_OFFSET_MM)) / 4.0
+    cf_taper = min(max(CF_TAPER_MM - delta, CF_TAPER_MIN_MM), CF_TAPER_MAX_MM)
+    waist_cf = Point(ftw - cf_taper, 10.0)
     waist_out = Point(10.0, 0.0)
     cf_dir = unit_vector(hip_cf.x - waist_cf.x, hip_cf.y - waist_cf.y)
 
@@ -213,6 +230,8 @@ def draft_front(m: Measurements) -> FrontDraft:
         "outseam_upper_len_mm": arc_length(outseam_upper),   # waist->knee transfer (m)
         "inseam_upper_len_mm": arc_length(inseam_upper),     # crotch->knee transfer (t)
         "hip_width_a_mm": hip_width_a,
+        "cf_taper_mm": cf_taper,
+        "cf_taper_clamped": cf_taper != CF_TAPER_MM - delta,
         "levels_y_mm": {"hip": hip_y, "crotch": crotch_y, "knee": knee_y, "hem": hem_y},
     }
     return FrontDraft(landmarks=landmarks, edges=edges,

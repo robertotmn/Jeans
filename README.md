@@ -81,6 +81,15 @@ pyinstaller packaging/pyinstaller_mac.spec --noconfirm   # dist/SelvedgeJeansPat
 In alternativa usa **Esporta PDF (tile A4)** e assembla i fogli con i
 crocini d'angolo, oppure un plotter che rispetti le dimensioni native.
 
+## Adattamento vita/fianchi
+
+Il fascicolo quadra tutta la vita sul dietro (regola ½W+2−vita davanti), il
+che funziona solo nella proporzione del chart (W = Hg − 12 cm). Per misure
+personalizzate l'app distribuisce la deviazione da quella proporzione metà sul
+davanti (variando la rientranza al c.f., fino a −2/+3.5 cm) e metà sul dietro;
+oltre i limiti compaiono avvisi nel report (resto vita, proporzione esaurita).
+Alla proporzione del chart il tracciato resta esattamente quello del libro.
+
 ## Limiti noti
 
 - Paramontura/scudo patta e taschino porta-monete sono pezzi standard derivati,

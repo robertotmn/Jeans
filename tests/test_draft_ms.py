@@ -102,9 +102,12 @@ def test_front_invariants(size):
              - (fcw.y - knee_in.y) * (crotch.x - knee_in.x))
     assert abs(cross) / distance(knee_in, fcw) < 0.01
 
-    # waist corners per the book rules
+    # waist corners: the c.f. taper is 1.5 cm minus the front's share of the
+    # waist deviation from the chart proportion (W = Hg - 12 cm), clamped
+    delta = (m.waistband_mm - (m.hip_girth_mm - 120.0)) / 4.0
+    taper = min(max(15.0 - delta, -20.0), 35.0)
     assert lm["waist_out"] == Point(10.0, 0.0)
-    assert lm["waist_cf"].x == pytest.approx(m.front_trouser_width_mm - 15.0)
+    assert lm["waist_cf"].x == pytest.approx(m.front_trouser_width_mm - taper)
     assert lm["waist_cf"].y == pytest.approx(10.0)
 
     # outline is a simple polygon and the edge chain closes
@@ -118,3 +121,41 @@ def test_front_invariants(size):
     assert 0 < f.report["inseam_upper_len_mm"] < m.inseam_mm
     assert f.report["outseam_upper_len_mm"] > m.outseam_mm - m.knee_length_mm - 20
     assert f.report["hip_width_a_mm"] == pytest.approx(m.front_trouser_width_mm, abs=6.0)
+
+
+def test_waist_increase_split_between_front_and_back():
+    """Enlarging W (same Hg) must widen BOTH legs, half/half within a couple
+    of mm (regression: the book rule alone put everything on the back)."""
+    base = dict(hip_girth=102, knee_girth=43, hem_width=38, outseam=102, inseam=82)
+    f_std = draft_front(Measurements.from_cm(waistband=90, **base))
+    f_big = draft_front(Measurements.from_cm(waistband=98, **base))
+    delta_front = f_big.report["waist_len_mm"] - f_std.report["waist_len_mm"]
+    assert delta_front == pytest.approx(20.0, abs=2.5)   # half of 8 cm / 2
+
+    from jeans_pattern.draft_ms import draft_back
+    b_std = draft_back(Measurements.from_cm(waistband=90, **base), f_std)
+    b_big = draft_back(Measurements.from_cm(waistband=98, **base), f_big)
+    delta_back = b_big.report["back_waist_mm"] - b_std.report["back_waist_mm"]
+    assert delta_back == pytest.approx(20.0, abs=2.5)
+    # and the total still obeys the book rule: front + back - darts = W/2
+    sewn = f_big.report["waist_len_mm"] + b_big.report["back_waist_mm"] - 20.0
+    assert sewn == pytest.approx(980.0 / 2, abs=0.01)
+
+
+def test_waist_decrease_split_symmetrically():
+    base = dict(hip_girth=102, knee_girth=43, hem_width=38, outseam=102, inseam=82)
+    f_std = draft_front(Measurements.from_cm(waistband=90, **base))
+    f_small = draft_front(Measurements.from_cm(waistband=84, **base))
+    delta_front = f_small.report["waist_len_mm"] - f_std.report["waist_len_mm"]
+    assert delta_front == pytest.approx(-15.0, abs=2.5)
+
+
+def test_extreme_waist_clamps_and_warns():
+    from jeans_pattern.pattern import build_full_pattern
+    m = Measurements.from_cm(waistband=120, hip_girth=102, knee_girth=43,
+                             hem_width=38, outseam=102, inseam=82)
+    f = draft_front(m)
+    assert f.report["cf_taper_clamped"]
+    assert f.report["cf_taper_mm"] == -20.0
+    pat = build_full_pattern(m)
+    assert any("fuori proporzione" in w for w in pat.report["warnings"])
