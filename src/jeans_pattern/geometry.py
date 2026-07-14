@@ -185,6 +185,29 @@ def point_at_arc_length(pts: list[Point], s: float) -> Point:
     return point_along(q, Point(2 * q.x - p.x, 2 * q.y - p.y), s - walked)
 
 
+def smooth_polyline(pts: list[Point], n_per_seg: int = 8) -> list[Point]:
+    """Smooth curve through ALL vertices of an open polyline (Catmull-Rom).
+    Used to blend kinked seam lines (e.g. the yoke edges after closing darts)."""
+    if len(pts) < 3:
+        return list(pts)
+    out = [pts[0]]
+    for i in range(len(pts) - 1):
+        p0 = pts[max(i - 1, 0)]
+        p1, p2 = pts[i], pts[i + 1]
+        p3 = pts[min(i + 2, len(pts) - 1)]
+        for j in range(1, n_per_seg + 1):
+            t = j / n_per_seg
+            t2, t3 = t * t, t * t * t
+            x = 0.5 * (2 * p1.x + (-p0.x + p2.x) * t
+                       + (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * t2
+                       + (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * t3)
+            y = 0.5 * (2 * p1.y + (-p0.y + p2.y) * t
+                       + (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * t2
+                       + (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * t3)
+            out.append(Point(x, y))
+    return out
+
+
 def chain_outline(edges: list[tuple[str, list[Point]]]) -> list[Point]:
     """Concatenate named edge polylines into one closed outline.
 
