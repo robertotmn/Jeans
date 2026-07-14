@@ -150,6 +150,114 @@ def curve_through(p_from: Point, control: Point, p_to: Point, n: int = 16) -> li
     return bezier_curve(p_from, control, p_to, n)
 
 
+def point_along(a: Point, b: Point, dist_mm: float) -> Point:
+    """Point at `dist_mm` from a in the direction of b (may pass beyond b)."""
+    ux, uy = unit_vector(b.x - a.x, b.y - a.y)
+    return Point(a.x + ux * dist_mm, a.y + uy * dist_mm)
+
+
+def arc_length(pts: list[Point]) -> float:
+    """Total length of a polyline."""
+    return sum(distance(p, q) for p, q in zip(pts, pts[1:]))
+
+
+def point_at_arc_length(pts: list[Point], s: float) -> Point:
+    """Point at arc length `s` measured from pts[0] along the polyline.
+
+    If s exceeds the total length, extrapolates along the LAST segment
+    direction (used to place transfer points on guidelines drawn shorter
+    than the transferred length). Negative s raises.
+    """
+    if s < 0:
+        raise ValueError(f"arc length must be >= 0, got {s}")
+    if len(pts) < 2:
+        raise ValueError("polyline needs >= 2 points")
+    walked = 0.0
+    for p, q in zip(pts, pts[1:]):
+        seg = distance(p, q)
+        if seg < 1e-12:
+            continue
+        if walked + seg >= s:
+            t = (s - walked) / seg
+            return Point(p.x + t * (q.x - p.x), p.y + t * (q.y - p.y))
+        walked += seg
+    p, q = pts[-2], pts[-1]
+    return point_along(q, Point(2 * q.x - p.x, 2 * q.y - p.y), s - walked)
+
+
+def chain_outline(edges: list[tuple[str, list[Point]]]) -> list[Point]:
+    """Concatenate named edge polylines into one closed outline.
+
+    Consecutive edges must share their junction point; the last edge must end
+    at the first edge's start. Shared corners are emitted once; the closing
+    point is not repeated.
+    """
+    out: list[Point] = []
+    for _name, pts in edges:
+        start = 1 if out and points_equal(out[-1], pts[0], tol=1e-6) else 0
+        out.extend(pts[start:])
+    if len(out) > 1 and points_equal(out[0], out[-1], tol=1e-6):
+        out.pop()
+    return out
+
+
+def offset_outline(edges: list[tuple[str, list[Point]]], sa_mm: dict[str, float]) -> list[Point]:
+    """Cut line: offset each named edge OUTWARD by sa_mm[name], mitre-joined.
+
+    `edges` is the closed chain used for the net outline (see chain_outline).
+    Every edge name must have an entry in sa_mm (0 = edge stays on the net
+    line). Sharp corners fall back to a bevel when the mitre would spike
+    beyond 4x the local allowance.
+    """
+    outline = chain_outline(edges)
+    area2 = sum(p.x * q.y - q.x * p.y
+                for p, q in zip(outline, outline[1:] + outline[:1]))
+    ccw = area2 > 0
+
+    segs: list[tuple[Point, Point, float]] = []
+    for name, pts in edges:
+        d = sa_mm[name]
+        if d < 0:
+            raise ValueError(f"seam allowance for {name!r} must be >= 0, got {d}")
+        for p, q in zip(pts, pts[1:]):
+            if distance(p, q) > 1e-9:
+                segs.append((p, q, d))
+
+    offset_segs = []
+    for p, q, d in segs:
+        ux, uy = unit_vector(q.x - p.x, q.y - p.y)
+        nx, ny = (uy, -ux) if ccw else (-uy, ux)
+        offset_segs.append((Point(p.x + nx * d, p.y + ny * d),
+                            Point(q.x + nx * d, q.y + ny * d), d))
+
+    result: list[Point] = []
+    n = len(offset_segs)
+    for i in range(n):
+        a1, a2, da = offset_segs[i]
+        b1, b2, db = offset_segs[(i + 1) % n]
+        if distance(a2, b1) < 1e-9:          # collinear or same allowance, no gap
+            result.append(a2)
+            continue
+        miter_cap = 4.0 * max(da, db, 1.0)
+        try:
+            ip = line_intersection(a1, a2, b1, b2)
+        except ValueError:
+            ip = None
+        if ip is not None and distance(ip, a2) <= miter_cap and distance(ip, b1) <= miter_cap:
+            result.append(ip)
+        else:
+            result.append(a2)
+            result.append(b1)
+
+    deduped = [result[0]]
+    for p in result[1:]:
+        if distance(p, deduped[-1]) > 1e-6:
+            deduped.append(p)
+    if len(deduped) > 1 and distance(deduped[0], deduped[-1]) < 1e-6:
+        deduped.pop()
+    return deduped
+
+
 def curved_edge(p_from: Point, p_to: Point, bow_mm: float, side: str = "right", n: int = 20) -> list[Point]:
     """Sample a quadratic Bezier from p_from to p_to that bulges perpendicular
     to the chord by `bow_mm`. `side` selects the side of the chord:
