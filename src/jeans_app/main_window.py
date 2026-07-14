@@ -54,8 +54,7 @@ class MainWindow(QtWidgets.QMainWindow):
     # ----- Internal helpers ----------------------------------------------
 
     def _build_pattern(self):
-        m = self.form.to_measurements()
-        return build_full_pattern(m, style=self.form.style())
+        return build_full_pattern(self.form.to_measurements())
 
     def _refresh_preview(self) -> None:
         try:

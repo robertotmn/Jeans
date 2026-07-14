@@ -14,9 +14,8 @@ import io
 from reportlab.pdfgen import canvas
 from reportlab.lib.units import mm
 from reportlab.lib.pagesizes import A4
-from reportlab.lib.utils import ImageReader
 
-from .pattern import Pattern, PatternPiece, RasterPiece
+from .pattern import Pattern, PatternPiece
 
 A4_W_MM = 210.0
 A4_H_MM = 297.0
@@ -77,20 +76,6 @@ def _draw_vector_piece(c, piece: PatternPiece, ox: float, oy: float, x_origin_mm
     c.setStrokeColorRGB(0, 0, 0)
 
 
-def _draw_raster_piece(c, piece: RasterPiece, ox: float, oy: float, x_origin_mm: float, y_origin_mm: float) -> None:
-    x0, y0, x1, y1 = piece.bbox_mm
-    w_mm = x1 - x0
-    h_mm = y1 - y0
-    x_left = (x0 + ox + x_origin_mm) * mm
-    y_bottom = (-(y1 + oy) + y_origin_mm) * mm
-
-    buf = io.BytesIO()
-    piece.image.save(buf, format="PNG")
-    buf.seek(0)
-    reader = ImageReader(buf)
-    c.drawImage(reader, x_left, y_bottom, width=w_mm * mm, height=h_mm * mm, mask="auto")
-
-
 def _draw_pieces(c, placed, x_origin_mm: float, y_origin_mm: float):
     """Draw all placed pieces onto the canvas, applying an additional
     (x_origin_mm, y_origin_mm) offset (for tile pagination or page margins).
@@ -98,10 +83,7 @@ def _draw_pieces(c, placed, x_origin_mm: float, y_origin_mm: float):
     Note: ReportLab's coordinate origin is bottom-left of the page; our
     pattern coordinates are y-down. We flip y here at draw time."""
     for piece, ox, oy in placed:
-        if isinstance(piece, RasterPiece):
-            _draw_raster_piece(c, piece, ox, oy, x_origin_mm, y_origin_mm)
-        else:
-            _draw_vector_piece(c, piece, ox, oy, x_origin_mm, y_origin_mm)
+        _draw_vector_piece(c, piece, ox, oy, x_origin_mm, y_origin_mm)
 
         # Piece-name label above the piece
         x0, y0, _, _ = piece.bbox()

@@ -1,32 +1,19 @@
 from jeans_pattern.export_svg import pattern_to_svg
-from jeans_pattern.pattern import build_full_pattern
 
 
-def test_svg_is_valid_xml(default_measurements):
-    pat = build_full_pattern(default_measurements, style="updated")
-    svg = pattern_to_svg(pat)
-    # SVG bytes should start with <?xml or <svg
+def test_svg_is_valid_xml(mini_pattern):
+    svg = pattern_to_svg(mini_pattern)
     assert svg.startswith(b"<?xml") or svg.startswith(b"<svg")
     assert b"</svg>" in svg
 
 
-def test_svg_contains_all_pieces(default_measurements):
-    pat = build_full_pattern(default_measurements, style="updated")
-    svg = pattern_to_svg(pat).decode()
-    for piece in pat:
+def test_svg_contains_all_pieces(mini_pattern):
+    svg = pattern_to_svg(mini_pattern).decode()
+    for piece in mini_pattern:
         assert piece.name in svg, f"piece {piece.name} not labelled in svg"
 
 
-def test_svg_basic_style(default_measurements):
-    pat = build_full_pattern(default_measurements, style="basic")
-    svg = pattern_to_svg(pat).decode()
-    # All 10 pieces should be present
-    for piece in pat:
-        assert piece.name in svg
-
-
-def test_svg_dimensions_in_mm(default_measurements):
+def test_svg_dimensions_in_mm(mini_pattern):
     """SVG width/height attributes use mm units (real-world scale)."""
-    pat = build_full_pattern(default_measurements, style="updated")
-    svg = pattern_to_svg(pat).decode()
+    svg = pattern_to_svg(mini_pattern).decode()
     assert 'mm"' in svg, "SVG should declare width/height in mm"
