@@ -73,3 +73,22 @@ def test_form_zero_allowances_disable_cut_line(form):
     form.set_value("sa_seam", 0.0)
     form.set_value("sa_hem", 0.0)
     assert not form.seam_allowances().enabled
+
+
+def test_form_reset_restores_defaults(form, qtbot):
+    form.set_value("waistband", 104.0)
+    form.set_value("sa_hem", 0.0)
+    with qtbot.waitSignal(form.measurements_changed, timeout=1000):
+        form.reset_to_defaults()
+    m = form.to_measurements()
+    assert m.waistband_mm == pytest.approx(900.0)
+    assert form.seam_allowances().hem_mm == pytest.approx(30.0)
+
+
+def test_form_reset_respects_current_unit(form):
+    form.set_unit("inch")
+    form.set_value("waistband", 40.0)
+    form.reset_to_defaults()
+    # spinbox shows inches, converted measurement is back to 90 cm
+    assert form._spinboxes["waistband"].value() == pytest.approx(90.0 / 2.54, abs=0.01)
+    assert form.to_measurements().waistband_mm == pytest.approx(900.0, abs=0.5)

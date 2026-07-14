@@ -70,6 +70,10 @@ class MeasurementForm(QtWidgets.QWidget):
             self._spinboxes[key] = sb
             layout.addRow(label, sb)
 
+        btn_reset = QtWidgets.QPushButton("Ripristina misure predefinite (taglia 50)")
+        btn_reset.clicked.connect(self.reset_to_defaults)
+        layout.addRow(btn_reset)
+
     # ----- Public API ----------------------------------------------------
 
     def unit(self) -> str:
@@ -96,6 +100,17 @@ class MeasurementForm(QtWidgets.QWidget):
             seam_mm=self._spinboxes["sa_seam"].value() * factor,
             hem_mm=self._spinboxes["sa_hem"].value() * factor,
         )
+
+    def reset_to_defaults(self) -> None:
+        """Restore every field (measurements + allowances) to the defaults,
+        expressed in the current unit. Emits measurements_changed once."""
+        factor = 1 / CM_PER_INCH if self._unit == "inch" else 1.0
+        defaults = {**DEFAULTS_CM, **SA_DEFAULTS_CM}
+        for key, sb in self._spinboxes.items():
+            sb.blockSignals(True)
+            sb.setValue(defaults[key] * factor)
+            sb.blockSignals(False)
+        self.measurements_changed.emit()
 
     # ----- Internal handlers ---------------------------------------------
 
