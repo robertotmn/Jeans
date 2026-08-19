@@ -796,3 +796,30 @@ Ac 490.3/531.2/571.3/609.6 · Sch 147.7/161.0/173.9/185.6 · agio testa
 0.25/0.50/3.36/9.61 mm (warning di clamp su 56 e 62) · scollo
 240.8/258.3/275.1/292.1 · correzione colletto −1.69/−1.58/−1.49/−1.41 mm ·
 cinturino 515.1/582.3/649.6/722.0 · polsino 321.8/321.5/321.4/321.4.
+
+**Fase 7 — verifica end-to-end (2026-08-19).** Nessuna quota rimessa in
+discussione. `scripts/verify_jacket_overlay.py` sovrappone il generato al libro
+su quattro pannelli (blocco corpo p. 11, blocco manica p. 12, corpo Design 4041
+e colletto p. 14) e chiude con `LANDMARK_TOL_MM = 2.5` / `CURVE_TOL_MM = 3.0`.
+Margine minimo residuo **0.34 mm** (occhiello n. 2). Eccezioni whitelistate,
+tutte già decise in fase di calibrazione:
+
+- **B_hem e i bordi ancorati a esso** (`upper back_fold`, `upper hem`,
+  `under hem`) a 4.48–4.60 mm, soglia 5.5 mm — D13/E3.6.
+- **occhielli 1–5** a 4.87–5.66 mm, soglia 6.0 mm — E4.2 (lo scostamento è
+  tutto in x: la fessura disegnata sconfina 0.55 cm oltre il c.f.).
+- **`panel_cf`/`panel_side`** misurate libro→generato: il prolungamento di 1 cm
+  fino al carré (D19/E4.7) è collineare ma esce dalla polilinea estratta.
+- **`pocket_opening`**: il PDF estrae solo la linea d'apertura da 12 cm, il
+  mark generato ci chiude attorno il listino da 1 cm.
+- `under back_fold` non è confrontato: nel riferimento non esiste (coincide col
+  fold del sopramanica, E3.6).
+
+Il design manica di p. 15 resta fuori dall'overlay: il libro disegna la manica
+**prima** dello slash (E4.6), quindi il sopramanica ruotato scarterebbe fino a
+~16 mm per costruzione. Resta coperto dai test della fase 4.
+
+`scripts/verify_ms_overlay.py` invariato e verde (landmark peggiore 1.91 mm).
+Smoke test di export reale (PDF singolo + SVG, `SeamAllowances(15, 30)`) su
+taglie 44/50/56 e Bh 190: 17 pezzi, nessuna eccezione, foglio singolo
+4.20–4.62 m × 0.80–0.87 m.

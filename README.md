@@ -1,13 +1,20 @@
 # M&S Jeans Pattern App
 
-Applicazione desktop (Windows + macOS) che genera il cartamodello su misura del
-jeans classico da uomo a 5 tasche e lo esporta in PDF/SVG in scala 1:1 (per
-proiettore da cartamodelli o plotter).
+Applicazione desktop (Windows + macOS) che genera cartamodelli su misura e li
+esporta in PDF/SVG in scala 1:1 (per proiettore da cartamodelli o plotter).
+La **tendina "Modello"** in cima al form sceglie fra:
+
+- **Basic Jeans** (default) — jeans classico da uomo a 5 tasche, Design 3069;
+- **Classic Denim Jacket** — giacca di jeans, Design 4041.
+
+I campi del form si adattano al modello scelto: `Waistband W` e `Hip girth Hg`
+sono comuni, gli altri si mostrano/nascondono.
 
 ## Metodo di tracciamento
 
 Il tracciato segue **"Metric Pattern Techniques – Jeans-Basics" di
-M. Müller & Sohn**: Basic Jeans Block (pp. 2–3) + Design 3069 (pp. 4–5),
+M. Müller & Sohn**: Basic Jeans Block (pp. 2–3) + Design 3069 (pp. 4–5) e
+Basic Denim Jacket Block (pp. 11–13) + Design 4041 (pp. 14–15),
 `docs/source-spec/Metric-pattern-techniques_Jeans-Basics.pdf`.
 
 Le pagine del fascicolo sono disegnate in scala (taglia 50):
@@ -18,7 +25,13 @@ landmark del tracciato generato coincida col disegno del libro entro ~1.5 mm
 curve sono documentate in `src/jeans_pattern/draft_ms.py` e nel piano
 `docs/superpowers/plans/2026-07-15-ms-jeans-draft.md`.
 
-## Misure richieste (chart M&S, default = taglia 50)
+Per la giacca valgono gli stessi criteri: `scripts/extract_jacket_reference.py`
+→ `tests/data/ms_jacket_reference_size50.json`, tracciato in
+`src/jeans_pattern/draft_jacket.py` (blocco) e
+`src/jeans_pattern/draft_jacket_design.py` (Design 4041), piano
+`docs/superpowers/plans/2026-08-19-ms-denim-jacket.md`.
+
+## Basic Jeans — misure richieste (chart M&S, default = taglia 50)
 
 | Sigla | Misura | Default |
 |---|---|---|
@@ -32,7 +45,7 @@ curve sono documentate in `src/jeans_pattern/draft_ms.py` e nel piano
 Derivate automaticamente: cavallo `Br = Os − Is`, altezza ginocchio
 `Kl = Is/2 + Is/10 − 2`, larghezze Ftw/Fcw/Btw/Bcw da Hg.
 
-## Pezzi generati (Design 3069)
+## Basic Jeans — pezzi generati (Design 3069)
 
 davanti ×2 · dietro ×2 · carré ×2 (pinces chiuse) · cinturino (con tacche
 c.f./tasca/fianco/c.b. e segni passanti) · tasca posteriore · sacchetto e
@@ -46,6 +59,76 @@ e 3 cm all'orlo; 0 = solo linee nette. Sotto il form compaiono i valori
 derivati e le verifiche del libro (agio fianchi, resto vita) con eventuali
 avvisi.
 
+## Classic Denim Jacket — misure richieste (chart M&S, default = taglia 50)
+
+| Sigla | Misura | Default |
+|---|---|---|
+| Bh | statura (body height) | 179 cm |
+| Cg | giro petto (chest girth) | 100 cm |
+| Wg | giro vita — campo `Waistband W` | 90 cm |
+| Hg | giro fianchi | 102 cm |
+| Sl | lunghezza manica (sleeve length) | 64 cm |
+
+Derivate automaticamente dal chart di p. 12 (valori alla taglia 50):
+
+| Sigla | Nome | Formula | Taglia 50 |
+|---|---|---|---|
+| Nw  | neck width | 1/10 di ½Cg + 3 | 8.0 cm |
+| Sd  | scye depth | ⅛Cg + 12.5 | 25.0 cm |
+| Ad  | armhole depth | Sd + 2.5 | 27.5 cm |
+| Bwl | back waist length | ¼Bh | 44.75 cm |
+| Lg  | lunghezza | ½Bh − ⅛Bh − 3.125 | 64.0 cm |
+| Bw  | back width | 2/10 Cg + 1.2 (Cg ≤ 100); 1/10 Cg + 11.2 sopra | 21.2 cm |
+| Sw  | scye width | ⅛Cg + 3 | 15.5 cm |
+| Cw  | chest width | 2/10 Cg + 0.8 | 20.8 cm |
+| Aw  | abdomen width | ¼Wg − 1.3, mai meno di Cw | 21.2 cm |
+
+Manica: altezza testa `Sch` e larghezza testa `Scw` sono misurate sul blocco
+generato (giro Ah e Ac), non su formule chiuse; `Sh` (fondo manica) è una
+costante di modello di 31 cm.
+
+## Classic Denim Jacket — pezzi generati (Design 4041)
+
+| Pezzo | Qtà | Taglio |
+|---|---|---|
+| `carre_davanti` | 2 | specchiato (bordo davanti in piega) |
+| `davanti` | 2 | specchiato (bordo davanti in piega) |
+| `pannello_petto` | 2 | specchiato |
+| `fianchetto_davanti` | 2 | specchiato |
+| `carre_dietro` | 1 | in piega sul c.b. |
+| `dietro` | 1 | in piega sul c.b. |
+| `fianchetto_dietro` | 2 | specchiato |
+| `sopramanica` | 2 | specchiato |
+| `sottomanica` | 2 | specchiato |
+| `polsino` | 2 | doppio, in piega sul lato lungo |
+| `colletto` | 2 | in piega sul c.b. (sopra + sotto) |
+| `cinturino` | 2 | in piega sul c.b. |
+| `patta_taschino` | 4 | specchiato (2 per tasca) |
+| `sacchetto_taschino` * | 4 | specchiato (2 per tasca) |
+| `listino_tasca_laterale` | 2 | specchiato |
+| `sacchetto_tasca_laterale` * | 4 | specchiato (2 per tasca) |
+| `linguetta` | 4 | specchiato (2 per lato) |
+
+\* pezzi derivati, non tracciati nel fascicolo.
+
+I bordi in piega non ricevono margine di cucitura; nessun bordo è un orlo
+libero (l'orlo del corpo va sul cinturino e il fondo manica sul polsino), quindi
+tutti gli altri prendono il margine cuciture. Il report sotto il form mostra
+profondità giro, lunghezza, agio petto, check fianchi Hg, giro manica Ac e agio
+testa manica, con gli avvisi del libro.
+
+Emendamenti rispetto alle quote stampate (dettaglio e motivazione nel piano
+`docs/superpowers/plans/2026-08-19-ms-denim-jacket.md`):
+
+- **D12** — `Sch`/`Scw` ricalibrate: Ah e Ac misurate sul blocco parametrico
+  escono ~0.5 % sotto i numeri del chart, due costanti di calibrazione
+  riportano l'altezza e la larghezza della testa sui valori dichiarati.
+- **D13** — fondo manica `Sh` = 31 cm dal chart; l'etichetta "½ sleeve hem 15"
+  del disegno è incoerente col chart, per cui l'angolo d'orlo della manica cade
+  4.6 mm fuori dal disegnato (eccezione dichiarata nell'overlay di verifica).
+- **D14** — piega dietro della manica al gomito = piega davanti + ½Sh + 3.5 cm:
+  riproduce esattamente il disegno, mentre il "+4.5" stampato non torna.
+
 ## Sviluppo
 
 ```bash
@@ -56,9 +139,18 @@ pytest
 python -m jeans_app.main          # GUI
 ```
 
-Dopo modifiche al tracciato, oltre a `pytest`, genera l'overlay
-generato-vs-libro con `python scripts/verify_ms_overlay.py`
-(`verification_ms_size50.pdf`: rosso = libro, blu = generato).
+Dopo modifiche al tracciato, oltre a `pytest`, genera gli overlay
+generato-vs-libro (rosso = libro, blu = generato; escono con codice diverso da
+zero se una deviazione supera la soglia):
+
+```bash
+python scripts/verify_ms_overlay.py       # verification_ms_size50.pdf (jeans)
+python scripts/verify_jacket_overlay.py   # verification_jacket_size50.pdf (giacca)
+```
+
+L'overlay della giacca confronta blocco corpo (p. 11), blocco manica (p. 12),
+corpo Design 4041 e colletto (p. 14) e stampa la deviazione di ogni landmark e
+di ogni curva.
 
 ## Packaging
 
