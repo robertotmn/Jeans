@@ -81,12 +81,17 @@ def test_every_piece_is_a_simple_closed_polygon(design):
 
 
 def test_folded_edges_are_named_for_the_allowance_rule(design):
-    """D27: fold edges start with `fold_`, and no jacket edge is called `hem`."""
+    """D27: fold edges start with `fold_`, and no jacket edge is called `hem`.
+
+    Only the seven pieces cut on a fold may carry one: a `fold_` on a flat
+    piece would silently drop the seam allowance of a live edge.
+    """
     pieces = design[5]
-    for name in ("carre_dietro", "dietro", "carre_davanti", "davanti",
-                 "colletto", "cinturino", "polsino"):
-        assert any(e.startswith("fold_") for e, _pts in pieces[name].edges), name
+    on_the_fold = {"carre_dietro", "dietro", "carre_davanti", "davanti",
+                   "colletto", "cinturino", "polsino"}
     for name, piece in pieces.items():
+        folded = [e for e, _pts in piece.edges if e.startswith("fold_")]
+        assert bool(folded) == (name in on_the_fold), f"{name}: {folded}"
         assert "hem" not in [e for e, _pts in piece.edges], name
 
 

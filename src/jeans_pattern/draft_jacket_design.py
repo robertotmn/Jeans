@@ -786,13 +786,15 @@ def build_tab() -> PieceDraft:
 # ---------------------------------------------------------------------------
 
 def build_chest_pocket_flap() -> PieceDraft:
+    """Flap of the chest pocket: four flat pieces, two per pocket, so the top
+    edge is the one sewn onto the yoke and takes its seam allowance like the
+    other three."""
     w, side, tip = FLAP_WIDTH_MM, FLAP_SIDE_MM, FLAP_POINT_MM
     corners = [Point(0.0, 0.0), Point(w, 0.0), Point(w, side),
                Point(w / 2, tip), Point(0.0, side)]
     return PieceDraft(
         name="patta_taschino",
-        edges=[("fold_edge", [corners[0], corners[1]]),
-               ("seam", corners[1:] + [corners[0]])],
+        edges=[("seam", corners + [corners[0]])],
         construction_lines=_button(Point(w / 2, FLAP_BUTTON_MM)),
         labels=[(Point(w / 2 - 35, side / 2), "PATTA TASCHINO x 4")],
         report={"width_mm": w, "side_mm": side, "point_mm": tip},
