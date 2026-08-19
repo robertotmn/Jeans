@@ -632,3 +632,58 @@ Costanti di forma vincenti (in testa a `draft_jacket.py`): scollo dietro
 0.534/0.161 (0.4 mm), scollo davanti +6.7° con 0.572/0.331 (0.2 mm), giro
 davanti ⊥spalla → verticale con 0.128/0.361 e 0.612/0.264 (0.7 mm), orlo
 davanti 0.474 (0.1 mm).
+
+**Fase 3 — blocco manica (2026-08-19).** Tutte le quote dei passi 1–11 del
+piano sono state confermate sui vettori tranne il punto 8 (v. E3.2). Accordo:
+landmark ≤ 1.07 mm (unica eccezione B_hem, D13), curve ≤ 1.07 mm salvo i bordi
+ancorati a B_hem. Lunghezza cucitura testa 549.01 mm — identica al disegno.
+
+- **E3.1 — D12 ricalibrata + nuova costante per Scw.** Ah e Ac misurate sul
+  blocco parametrico escono ~0.5 % sotto i numeri del libro (Ah 439.9 contro
+  442 del chart e 441.6 disegnati; Ac 531.2 contro 534 e 533.0). Con
+  `AH_HALF_CAL_MM = 2.0` Sch sarebbe 159.7 invece di 161.0 e tutta la manica
+  scivolerebbe di 1.3 mm. Costanti vincenti: **`AH_HALF_CAL_MM = 3.4`**
+  (Sch = 160.999, disegnato 161.0) e la nuova **`SCW_CAL_MM = 1.4`**
+  (Scw = 241.98, chart 242.0; senza di essa E cadrebbe 1.9 mm dentro). Le due
+  costanti assorbono insieme lo scarto blocco/libro e l'incoerenza interna del
+  chart (Ah 44.2 ma ½Ah 22.3).
+- **E3.2 — il passo 8 del piano è sbagliato: la testa davanti NON è la copia
+  specchiata del sottomanica.** Il riflesso del giro sottomanica rispetto alla
+  piega manda UST esattamente in FST (conferma che FST e UST sono i ±3 ⊥ alla
+  piega), ma prosegue **a sinistra** di FST, fuori dal pezzo: è il controllo di
+  cucitura che il testo chiede ("check the seam transitions"), non la linea
+  disegnata. Il tratto FST→FAN del disegno sale invece verso FAN ed è
+  implementato come cubico con tangente d'uscita a **−24.0° dalla ⊥ alla
+  cucitura davanti** e tangente d'arrivo lungo la guida G1 (fit 0.21 mm).
+- **E3.3 — U22** sta a 2.2 cm **in linea d'aria** da Q sull'orizzontale di U2
+  (intersezione cerchio/orizzontale), non a 2.2 cm di ascissa: riproduce il
+  punto disegnato a 0.63 mm. Il tratto Q→U22 della testa è rettilineo (la
+  freccia del disegno vale 0.15 mm) e risulta ⊥ alla guida Q→T.
+- **E3.4 — cuciture dietro**: entrambe escono da U22/U2 **squadrate in giù**
+  (l'angolo libero fittato vale 0.09° e 0.08°, quindi fissato a 0) e arrivano
+  **tangenti alla piega dietro**. `merge_back` = punto della piega a 9.0 cm
+  **verticali** sotto il gomito (1.07 mm dal disegnato); alfa/beta 0.100/0.400
+  sopra (fit 0.63 mm, pancia 22.48 contro 22.43) e 0.080/0.480 sotto (fit
+  1.07 mm, pancia 20.87 contro 20.85).
+- **E3.5 — angoli al gomito delle cuciture davanti** = mitre delle due
+  parallele a ±3 cm della piega rastremata (residuo 0.03 mm): conferma il
+  passo 7 del piano, che quindi non richiede costanti.
+- **E3.6 — conseguenza di D13**: B_hem calcolato con Sh 31.0 cade a 4.60 mm dal
+  disegnato, e i bordi `back_fold` e `hem` (dritti, ancorati a B_hem) ereditano
+  lo scostamento. Tolleranza di test dedicata 5.0 mm, il resto a 2.0 mm.
+  Nota: il JSON di riferimento non ha un `back_fold` per il sottomanica (il
+  tratto merge_back→B_hem coincide col fold del sopramanica e non è stato
+  estratto separatamente) — testato con l'invariante di collinearità.
+- **E3.7 — valori generati alla 50** (per le fasi 4–5): Sch 161.00 · Scw 241.98
+  · testa 549.01 (disegnata 549.01) · **agio testa +17.85 mm = 3.36 %**
+  (disegnato +2.8…3.0 %, il libro dichiara 4–6 %: solo report, D17) · cuciture
+  dietro 608.81/608.02 (disegnate 609.19/608.35) · orlo totale 310.23 ≈ Sh.
+  Su altre taglie l'agio va da 2.2 % (44) a 5.2 % (62) e il Δ fra le due
+  cuciture dietro cresce 0.06/0.79/1.76/2.90 mm (44/50/56/62) perché Sh resta
+  fisso per D13: l'invariante multi-taglia usa quindi 3.0 mm, il test sulla
+  taglia 50 resta a 2.0 mm.
+
+Costanti di forma manica: testa davanti −24.0°/0.385/0.412 (0.21 mm), testa
+M2→Sp 0.229/0.467 con tangente d'uscita esattamente su G1 (0.44 mm), testa
+Sp→Q 0.111/0.604 (0.41 mm), giro sottomanica +14.8° dalla ⊥ alla cucitura
+davanti con 0.288/0.632 (0.64 mm), cuciture dietro 0.100/0.400 e 0.080/0.480.
