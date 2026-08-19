@@ -2,11 +2,11 @@
 from PySide6 import QtWidgets, QtCore
 from PySide6.QtWidgets import QFileDialog, QMessageBox
 
-from jeans_pattern.pattern import build_full_pattern
+from jeans_pattern.pattern import build_full_pattern, build_jacket_pattern
 from jeans_pattern.export_svg import pattern_to_svg
 from jeans_pattern.export_pdf import pattern_to_pdf
 
-from .measurement_form import MeasurementForm
+from .measurement_form import MODEL_JACKET, MeasurementForm
 from .preview_widget import PreviewWidget
 
 
@@ -58,7 +58,15 @@ class MainWindow(QtWidgets.QMainWindow):
     # ----- Internal helpers ----------------------------------------------
 
     def _build_pattern(self):
+        if self.form.model() == MODEL_JACKET:
+            return build_jacket_pattern(
+                self.form.to_jacket_measurements(), self.form.seam_allowances()
+            )
         return build_full_pattern(self.form.to_measurements(), self.form.seam_allowances())
+
+    def _export_name(self, ext: str) -> str:
+        stem = "jacket_pattern" if self.form.model() == MODEL_JACKET else "jeans_pattern"
+        return f"{stem}.{ext}"
 
     def _refresh_preview(self) -> None:
         try:
@@ -70,12 +78,22 @@ class MainWindow(QtWidgets.QMainWindow):
             QMessageBox.warning(self, "Errore preview", str(e))
 
     def _show_report(self, r: dict) -> None:
-        text = (
-            f"Cavallo Br: {r['body_rise_mm'] / 10:.1f} cm  ·  "
-            f"Alt. ginocchio Kl: {r['knee_length_mm'] / 10:.1f} cm\n"
-            f"Agio fianchi: {r['hip_ease_mm'] / 10:.1f} cm  ·  "
-            f"Resto vita dietro: {r['waist_rest_mm'] / 10:.1f} cm"
-        )
+        if r.get("model") == "jacket":
+            text = (
+                f"Prof. giro Sd: {r['scye_depth_mm'] / 10:.1f} cm  ·  "
+                f"Lunghezza Lg: {r['length_mm'] / 10:.1f} cm\n"
+                f"Agio petto: {r['chest_ease_mm'] / 10:.1f} cm  ·  "
+                f"Check fianchi Hg: {r['hip_ease_mm'] / 10:.1f} cm\n"
+                f"Giro manica Ac: {r['armhole_circ_mm'] / 10:.1f} cm  ·  "
+                f"Agio testa: {r['sleeve_cap_ease_mm'] / 10:.1f} cm"
+            )
+        else:
+            text = (
+                f"Cavallo Br: {r['body_rise_mm'] / 10:.1f} cm  ·  "
+                f"Alt. ginocchio Kl: {r['knee_length_mm'] / 10:.1f} cm\n"
+                f"Agio fianchi: {r['hip_ease_mm'] / 10:.1f} cm  ·  "
+                f"Resto vita dietro: {r['waist_rest_mm'] / 10:.1f} cm"
+            )
         if r["warnings"]:
             text += "\n⚠ " + "\n⚠ ".join(r["warnings"])
             self.info_label.setStyleSheet("color: #b00;")
@@ -85,7 +103,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _export_pdf(self, mode: str) -> None:
         path, _ = QFileDialog.getSaveFileName(
-            self, "Salva PDF", "jeans_pattern.pdf", "PDF (*.pdf)"
+            self, "Salva PDF", self._export_name("pdf"), "PDF (*.pdf)"
         )
         if not path:
             return
@@ -99,7 +117,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _export_svg(self) -> None:
         path, _ = QFileDialog.getSaveFileName(
-            self, "Salva SVG", "jeans_pattern.svg", "SVG (*.svg)"
+            self, "Salva SVG", self._export_name("svg"), "SVG (*.svg)"
         )
         if not path:
             return

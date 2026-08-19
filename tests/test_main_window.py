@@ -34,3 +34,31 @@ def test_main_window_report_label(main_window):
     text = main_window.info_label.text()
     assert "Agio fianchi" in text
     assert "Cavallo Br: 20.0 cm" in text
+
+
+def test_main_window_jacket_pattern_builds(main_window):
+    """Switching the model to the jacket produces all 17 Design 4041 pieces."""
+    from jeans_app.measurement_form import MODEL_JACKET
+    main_window.form.set_model(MODEL_JACKET)
+    pat = main_window._build_pattern()
+    assert len(list(pat)) == 17
+
+
+def test_main_window_jacket_report_label(main_window):
+    from jeans_app.measurement_form import MODEL_JACKET
+    main_window.form.set_model(MODEL_JACKET)
+    main_window._refresh_preview()
+    text = main_window.info_label.text()
+    assert "Prof. giro Sd: 25.0 cm" in text
+    assert "Lunghezza Lg: 64.0 cm" in text
+    assert "Agio petto" in text
+    assert "Agio testa" in text
+    assert "Cavallo Br" not in text
+
+
+def test_main_window_export_name_follows_model(main_window):
+    from jeans_app.measurement_form import MODEL_JACKET
+    assert main_window._export_name("pdf") == "jeans_pattern.pdf"
+    main_window.form.set_model(MODEL_JACKET)
+    assert main_window._export_name("pdf") == "jacket_pattern.pdf"
+    assert main_window._export_name("svg") == "jacket_pattern.svg"

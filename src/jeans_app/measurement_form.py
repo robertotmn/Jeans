@@ -1,12 +1,18 @@
-"""Measurement input form for the M. Mueller & Sohn jeans draft.
+"""Measurement input form for the M. Mueller & Sohn drafts.
 
-Six body measurements (chart page 2) plus the two seam-allowance values,
-entered in cm or inch. Values are converted in place when the unit changes.
+Six body measurements for the jeans (chart page 2) or five for the denim jacket
+(chart page 12), plus the two seam-allowance values, entered in cm or inch.
+Values are converted in place when the unit changes; the rows that do not
+belong to the selected model are hidden.
 """
 from PySide6 import QtWidgets, QtCore
 
 from jeans_pattern.measurements import Measurements
+from jeans_pattern.measurements_jacket import JacketMeasurements
 from jeans_pattern.pattern import SeamAllowances
+
+MODEL_JEANS = "Basic Jeans"
+MODEL_JACKET = "Classic Denim Jacket"
 
 FIELDS = [
     ("waistband", "Waistband W (giro vita)"),
@@ -22,6 +28,18 @@ DEFAULTS_CM = {
     "outseam": 102.0, "inseam": 82.0,
 }
 
+JACKET_FIELDS = [
+    ("body_height", "Body height Bh (statura)"),
+    ("chest_girth", "Chest girth Cg (giro petto)"),
+    ("sleeve_length", "Sleeve length Sl (lunghezza manica)"),
+]
+
+JACKET_DEFAULTS_CM = {"body_height": 179.0, "chest_girth": 100.0, "sleeve_length": 64.0}
+
+# waistband (= Wg) and hip_girth (= Hg) are shared, the rest belongs to one model
+JEANS_ONLY_KEYS = ["knee_girth", "hem_width", "outseam", "inseam"]
+JACKET_ONLY_KEYS = [key for key, _label in JACKET_FIELDS]
+
 SA_FIELDS = [
     ("sa_seam", "Margine cuciture"),
     ("sa_hem", "Margine orlo"),
@@ -36,12 +54,19 @@ class MeasurementForm(QtWidgets.QWidget):
     """Form widget. Emits `measurements_changed` whenever any input changes."""
 
     measurements_changed = QtCore.Signal()
+    model_changed = QtCore.Signal(str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self._unit = "cm"
+        self._model = MODEL_JEANS
 
-        layout = QtWidgets.QFormLayout(self)
+        layout = self._layout = QtWidgets.QFormLayout(self)
+
+        self._model_combo = QtWidgets.QComboBox()
+        self._model_combo.addItems([MODEL_JEANS, MODEL_JACKET])
+        self._model_combo.currentTextChanged.connect(self._on_model_changed)
+        layout.addRow("Modello", self._model_combo)
 
         self._unit_combo = QtWidgets.QComboBox()
         self._unit_combo.addItems(["cm", "inch"])
@@ -55,6 +80,16 @@ class MeasurementForm(QtWidgets.QWidget):
             sb.setDecimals(3)
             sb.setSingleStep(0.5)
             sb.setValue(DEFAULTS_CM[key])
+            sb.valueChanged.connect(self._on_value_changed)
+            self._spinboxes[key] = sb
+            layout.addRow(label, sb)
+
+        for key, label in JACKET_FIELDS:
+            sb = QtWidgets.QDoubleSpinBox()
+            sb.setRange(0.1, 1000.0)
+            sb.setDecimals(3)
+            sb.setSingleStep(0.5)
+            sb.setValue(JACKET_DEFAULTS_CM[key])
             sb.valueChanged.connect(self._on_value_changed)
             self._spinboxes[key] = sb
             layout.addRow(label, sb)
@@ -74,7 +109,17 @@ class MeasurementForm(QtWidgets.QWidget):
         btn_reset.clicked.connect(self.reset_to_defaults)
         layout.addRow(btn_reset)
 
+        self._apply_model_visibility()
+
     # ----- Public API ----------------------------------------------------
+
+    def model(self) -> str:
+        return self._model
+
+    def set_model(self, name: str) -> None:
+        if name not in (MODEL_JEANS, MODEL_JACKET):
+            raise ValueError(f"unknown model {name!r}")
+        self._model_combo.setCurrentText(name)
 
     def unit(self) -> str:
         return self._unit
@@ -94,6 +139,14 @@ class MeasurementForm(QtWidgets.QWidget):
             return Measurements.from_inches(**vals)
         return Measurements.from_cm(**vals)
 
+    def to_jacket_measurements(self) -> JacketMeasurements:
+        vals = {key: self._spinboxes[key].value() for key, _label in JACKET_FIELDS}
+        vals["waist_girth"] = self._spinboxes["waistband"].value()
+        vals["hip_girth"] = self._spinboxes["hip_girth"].value()
+        if self._unit == "inch":
+            return JacketMeasurements.from_inches(**vals)
+        return JacketMeasurements.from_cm(**vals)
+
     def seam_allowances(self) -> SeamAllowances:
         factor = 25.4 if self._unit == "inch" else 10.0
         return SeamAllowances(
@@ -105,7 +158,7 @@ class MeasurementForm(QtWidgets.QWidget):
         """Restore every field (measurements + allowances) to the defaults,
         expressed in the current unit. Emits measurements_changed once."""
         factor = 1 / CM_PER_INCH if self._unit == "inch" else 1.0
-        defaults = {**DEFAULTS_CM, **SA_DEFAULTS_CM}
+        defaults = {**DEFAULTS_CM, **JACKET_DEFAULTS_CM, **SA_DEFAULTS_CM}
         for key, sb in self._spinboxes.items():
             sb.blockSignals(True)
             sb.setValue(defaults[key] * factor)
@@ -113,6 +166,21 @@ class MeasurementForm(QtWidgets.QWidget):
         self.measurements_changed.emit()
 
     # ----- Internal handlers ---------------------------------------------
+
+    def _apply_model_visibility(self) -> None:
+        jacket = self._model == MODEL_JACKET
+        for key in JEANS_ONLY_KEYS:
+            self._layout.setRowVisible(self._spinboxes[key], not jacket)
+        for key in JACKET_ONLY_KEYS:
+            self._layout.setRowVisible(self._spinboxes[key], jacket)
+
+    def _on_model_changed(self, name: str) -> None:
+        if name == self._model:
+            return
+        self._model = name
+        self._apply_model_visibility()
+        self.model_changed.emit(name)
+        self.measurements_changed.emit()
 
     def _on_unit_changed(self, new_unit: str) -> None:
         if new_unit == self._unit:
