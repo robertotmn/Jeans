@@ -586,3 +586,49 @@ Fase 7 chiude con l'overlay giacca sotto soglia e l'overlay jeans invariato.
 Design 4042 Trucker Jacket (pp. 16–18); gradazione automatica; riduzione
 sottocolletto/sormonti sartoriali; istruzioni di cucito; rinomina di titolo
 finestra ed eseguibile; esposizione di Sh nel form.
+
+## Emendamenti dalla calibrazione
+
+**Fase 2 — blocco corpo (2026-08-19).** Il fit contro le polilinee del JSON di
+riferimento ha confermato tutte le quote del piano tranne la meccanica della
+*seam relocation*, riformulata qui sotto. Accordo raggiunto: landmark dietro
+≤ 0.56 mm, davanti ≤ 1.64 mm (Cn/S2/C0/HSP_f/SP0_f/SP_f ereditano l'~1.1 mm con
+cui il disegno stampa la linea di profondità giro), curve ≤ 1.62 mm.
+
+- **E2.1 — D5 rivisto: HSP_b sta SULLA curva dello scollo, non su una
+  tangente.** L'intersezione del prolungamento tangente con la retta spalla
+  relocata cade in (8.67,−2.90), 0.9 cm dal punto disegnato (9.12,−3.67); i
+  vettori mostrano invece che lo scollo dietro è **un unico tratto di curva**
+  di cui A2 è solo un punto di costruzione: E sta a 1 cm di arco oltre A2
+  ("lengthen the neckline 1 cm") e HSP_b a 1 cm ancora oltre. La relocation è
+  quindi simmetrica ai due capi: **+1 cm lungo lo scollo** al collo e **+1 cm
+  ⊥ alla retta spalla** alla spalla (SP_b = SP0 + 1·n). Implementazione: un
+  cubico N→A2 (tangente ⊥ al c.b. in N, −46.5° in A2) campionato **oltre
+  t = 1**, che è ciò che fa il curvilineo del libro. Errore residuo su E 0.24 mm,
+  su HSP_b 0.29 mm, sulla spalla finita 0.58 mm.
+- **E2.2 — D3 rivisto: la regola “−0.5 cm” vale sulle spalle FINITE.** Le due
+  traslazioni da 1 cm (davanti: lungo lo scollo al collo, ⊥ alla guida alla
+  spalla) non sono parallele, quindi la relocation **non** conserva la
+  lunghezza: sul disegno la guida grezza davanti è 15.27 contro 16.29 dietro
+  (−1.02) mentre le spalle finite sono 15.18 contro 15.68 (−0.50). SP_f si
+  determina perciò come intersezione retta/cerchio: punto della guida
+  *relocata* a distanza (spalla dietro finita − 0.5) da HSP_f. Δ spalle esatto
+  a 5.0 mm su tutte le taglie.
+- **E2.3 — HSP_f = 1 cm di arco lungo lo scollo davanti da Cn** (misurato
+  10.01 mm sul disegno), non `Cn + n` con n perpendicolare alla spalla come
+  scritto al passo 14; SP_f = SP0_f + 1 cm ⊥ alla guida spalla resta valido.
+- **E2.4 — Convenzione degli agi: entrambi i controlli del libro si leggono
+  sul mezzo modello.** `chest_ease_mm` = torace totale − ½Cg (= 7.5 cm alla 50,
+  l'aritmetica del chart) e `hip_ease_mm` = orlo totale − ½Hg, con warning
+  "Check Hg" sotto 5 cm. Da riusare identica in `build_jacket_pattern` (fase 5).
+- **E2.5 — Valori generati per la fase 3** (taglia 50, dal blocco parametrico):
+  back ah 23.33, front ah 20.65, **Ah 43.99** (chart 44.2, disegnato 44.16);
+  giri 28.43 + 24.68 = **Ac 53.12** (chart 53.4, disegnato 53.30). La
+  calibrazione di `AH_HALF_CAL_MM` (D12) va rifatta su questi numeri, non su
+  quelli del disegno.
+
+Costanti di forma vincenti (in testa a `draft_jacket.py`): scollo dietro
+−46.5°/0.35 (0.3 mm), giro dietro ⊥spalla → −11.4° con 0.194/0.260 e
+0.534/0.161 (0.4 mm), scollo davanti +6.7° con 0.572/0.331 (0.2 mm), giro
+davanti ⊥spalla → verticale con 0.128/0.361 e 0.612/0.264 (0.7 mm), orlo
+davanti 0.474 (0.1 mm).

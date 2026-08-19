@@ -6,15 +6,23 @@ import pytest
 
 from jeans_pattern.geometry import Point
 from jeans_pattern.measurements import Measurements
+from jeans_pattern.measurements_jacket import JacketMeasurements
 from jeans_pattern.pattern import Pattern, PatternPiece
 
 REFERENCE_PATH = pathlib.Path(__file__).parent / "data" / "ms_reference_size50.json"
+JACKET_REFERENCE_PATH = pathlib.Path(__file__).parent / "data" / "ms_jacket_reference_size50.json"
 
 
 @pytest.fixture(scope="session")
 def reference():
     """Size-50 ground truth measured from the booklet's scale drawing."""
     return json.loads(REFERENCE_PATH.read_text(encoding="utf-8"))
+
+
+@pytest.fixture(scope="session")
+def jacket_reference():
+    """Size-50 ground truth measured from the jacket scale drawings (pages 11-15)."""
+    return json.loads(JACKET_REFERENCE_PATH.read_text(encoding="utf-8"))
 
 
 def max_deviation_to_polyline(gen: list[Point], ref_pts: list[list[float]]) -> float:
@@ -42,6 +50,17 @@ def size50():
     return Measurements.from_cm(
         waistband=90.0, hip_girth=102.0, knee_girth=43.0, hem_width=38.0,
         outseam=102.0, inseam=82.0,
+    )
+
+
+@pytest.fixture
+def size50_jacket():
+    """M&S jacket chart sample, size 50 (booklet page 12). The drawings on
+    pages 11-15 of this size are the ground truth in
+    tests/data/ms_jacket_reference_size50.json."""
+    return JacketMeasurements.from_cm(
+        body_height=179.0, chest_girth=100.0, waist_girth=90.0,
+        hip_girth=102.0, sleeve_length=64.0,
     )
 
 
