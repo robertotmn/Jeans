@@ -877,3 +877,9 @@ taglie 44/50/56 e Bh 190: 17 pezzi, nessuna eccezione, foglio singolo
   L'overlay confronta ora il **centro della fessura generata** contro quello
   disegnato invece del bottone sul c.f.: cade la whitelist `BUTTONHOLE_ITEMS`
   (6.0 mm) e il margine minimo del gate diventa reale, 0.86 mm.
+- **E8.5 — minori.** `split_sleeve` riportava nel `pivot_deg` del sottomanica
+  la rotazione del sopramanica (il sottomanica non ruota: ora 0.0, e ogni pezzo
+  ha la sua copia della lista warnings); il test che li confrontava era
+  tautologico ed è sostituito dal confronto punto a punto fra il giro del
+  sottomanica e quello del blocco. `.gitignore` ignora anche
+  `jacket_pattern.pdf/.svg`, i nomi di export proposti col modello giacca.

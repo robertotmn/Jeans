@@ -18,3 +18,5 @@ test_*.svg
 # user-generated exports at repo root
 /jeans_pattern.pdf
 /jeans_pattern.svg
+/jacket_pattern.pdf
+/jacket_pattern.svg

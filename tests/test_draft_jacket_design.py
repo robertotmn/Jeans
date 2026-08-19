@@ -380,9 +380,11 @@ def test_cap_ease_is_taken_out_by_the_slash(design):
     assert abs(caps - sleeve.report["armhole_circ_mm"]) < 1.0
     assert pieces["sopramanica"].report["warnings"] == []
     # only the upper sleeve turns; the under one keeps the block's cap
-    assert pieces["sottomanica"].report["pivot_deg"] == pytest.approx(
-        pieces["sopramanica"].report["pivot_deg"])
     assert 0.0 < pieces["sopramanica"].report["pivot_deg"] < 3.0
+    assert pieces["sottomanica"].report["pivot_deg"] == 0.0
+    block_cap = sleeve.edge("under", "cap")
+    assert all(distance(a, b) < 1e-9
+               for a, b in zip(dict(pieces["sottomanica"].edges)["cap"], block_cap))
 
 
 def test_cap_ease_warns_when_the_slash_is_clamped():

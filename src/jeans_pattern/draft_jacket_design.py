@@ -962,7 +962,8 @@ def split_sleeve(sleeve: JacketSleeveDraft) -> tuple[PieceDraft, PieceDraft]:
 
     y_elbow = sleeve.report["levels_y_mm"]["elbow"]
     pieces = []
-    for name, edges in zip(("sopramanica", "sottomanica"), halves):
+    for name, turn, edges in zip(("sopramanica", "sottomanica"),
+                                 (degrees(ang), 0.0), halves):
         back = dict(edges)["back_seam"]
         vent = point_at_arc_length(back[::-1], SLEEVE_VENT_MM)
         u = unit_vector(back[-1].x - back[-2].x, back[-1].y - back[-2].y)
@@ -978,7 +979,7 @@ def split_sleeve(sleeve: JacketSleeveDraft) -> tuple[PieceDraft, PieceDraft]:
             report={"cap_len_mm": _cap_len(edges),
                     "hem_len_mm": distance(pivot, hem_front),
                     "vent_mm": SLEEVE_VENT_MM, "cap_ease_mm": ease,
-                    "pivot_deg": degrees(ang), "warnings": warnings},
+                    "pivot_deg": turn, "warnings": list(warnings)},
         ))
     return pieces[0], pieces[1]
 
