@@ -687,3 +687,83 @@ Costanti di forma manica: testa davanti −24.0°/0.385/0.412 (0.21 mm), testa
 M2→Sp 0.229/0.467 con tangente d'uscita esattamente su G1 (0.44 mm), testa
 Sp→Q 0.111/0.604 (0.41 mm), giro sottomanica +14.8° dalla ⊥ alla cucitura
 davanti con 0.288/0.632 (0.64 mm), cuciture dietro 0.100/0.400 e 0.080/0.480.
+
+**Fase 4 — Design 4041 (2026-08-19).** Tutte le quote dei passi 1–14 del corpo,
+dei 6 punti del colletto e dei 6 della manica sono state confermate sui vettori
+di p. 14–15 tranne i punti qui sotto. Accordo alla taglia 50: landmark dietro
+≤ 0.55 mm, davanti ≤ 1.10 mm (ereditano lo slop del blocco), bordi del corpo
+≤ 1.61 mm, colletto ≤ 0.60 mm, marks (patta/apertura/sacchetto/tasca laterale)
+≤ 0.91 mm, cinturino 582.31 contro 582.51 disegnato.
+
+- **E4.1 — firme senza `m`.** `design_body(back, front)` e
+  `split_sleeve(sleeve)` non usano le misure: tutto quello che serve è già nei
+  draft (l'Ac di riferimento sta in `sleeve.report["armhole_circ_mm"]`).
+  Le firme del piano (`design_body(m, back, front)`,
+  `split_sleeve(m, sleeve)`) avrebbero un parametro morto.
+- **E4.2 — occhielli misurati, D21/D22 corretti.** Il PDF disegna ogni asola
+  come una fessura **lunga 2.206 cm** (non 2.5) la cui estremità verso il bordo
+  sta **0.54–0.61 cm oltre il c.f.** (non 1 cm prima). La stessa regola vale
+  sul cinturino (asola 14.22→36.50 dal bordo, c.f. a 20.0: 0.58 cm oltre il
+  c.f.). Costanti: `BUTTONHOLE_LEN_MM = 22.0`, `BUTTONHOLE_PAST_CF_MM = 5.5`.
+  I bottoni restano marcati sul c.f. (D21 confermato). Le y degli occhielli —
+  la parte che il libro prescrive davvero — cadono entro 0.9 mm dal disegno,
+  passo 130.6 contro 131.0.
+- **E4.3 — l'annullamento dell'agio testa lo porta il SOLO sopramanica.** Lo
+  slash del sottomanica va dal perno all'**angolo** della testa (UST): ruotando
+  la cucitura davanti attorno al perno, UST si sposta *fuori* dal pezzo (sopra
+  il giro) invece di mangiare testa, e il contorno si autointerseca. Il taglio
+  Sp→angolo orlo-dietro del sopramanica invece funziona: il punto di taglio
+  scorre lungo la curva della testa, che si accorcia della corda. Il
+  sottomanica viene quindi solo accorciato e raccordato. Loop proporzionale
+  (max 10 giri, tolleranza 1 mm) con clamp a 2.5 cm come da D17.
+  Risultati: 44 agio 10.66→0.25 mm (1.18°), 50 17.85→0.50 mm (1.89°),
+  **56 25.03→3.36 mm e 62 31.79→9.61 mm con warning** (l'agio del blocco supera
+  il clamp: il libro non prevede il caso, il residuo è dichiarato).
+- **E4.4 — colletto: la correzione si riporta, non si applica.** Con la
+  baseline = ½ scollo abbassato la cucitura collo esce 1.41–1.69 mm più lunga
+  su tutte le taglie (0.6 % della corda), dentro il ±2.5 mm del piano; il
+  disegno stesso non applica nessuna correzione (baseline 260.22 = scollo
+  disegnato 260.11). `correction_mm` sta nel report e il warning scatta solo
+  oltre 2.5 mm.
+- **E4.5 — polsino 32.1 cm, non 31.0.** Il fondo manica si allarga accorciando
+  di 4.5 cm (la manica è rastremata): blocco 310.2 → design 321.5 alla 50,
+  contro i 314.0 disegnati. La differenza di 7.5 mm è esattamente il doppio
+  dello scarto D13 sull'angolo B_hem (3.7 + 4.0 mm), che la cimatura porta con
+  sé. Il "≈31.0 alla 50" del piano era la misura del BLOCCO, non del pezzo
+  accorciato; tolleranza di test dedicata 8.0 mm sul confronto col disegno.
+- **E4.6 — p. 15 disegna la manica NON slashata.** Le polilinee della testa nel
+  riferimento design coincidono con quelle del blocco: il libro mostra il
+  pezzo prima dello slash. Solo i bordi non ruotati (testa e cucitura davanti
+  del sottomanica, cuciture dietro, angoli d'orlo) si possono confrontare col
+  disegno; il sopramanica ruotato scarta fino a ~16 mm per costruzione.
+- **E4.7 — cuciture pannello davanti chiuse sul carré.** Il riferimento le
+  ferma sulla linea apertura; il prolungamento di 1 cm (D19) è calcolato come
+  intersezione con la linea del carré (non come 1 cm lungo la retta) perché le
+  catene dei tre pannelli devono chiudersi esattamente. Differenza fra le due
+  letture: 0.01 mm.
+- **E4.8 — anche `carre_davanti` ha il bordo `fold_edge`.** La piega del bordo
+  davanti corre da collo a orlo, quindi attraversa carré e pannello centrale:
+  la tabella dei pezzi la annotava solo su `davanti`.
+- **E4.9 — marks clippati con shapely su TUTTI i pannelli davanti** (D20 alla
+  lettera). L'apertura da 12 cm si spartisce 15.0 / 90.0 / 15.0 mm fra
+  `davanti`, `pannello_petto` e `fianchetto_davanti`; la somma torna a 120.0.
+  Il pintuck slash&spread (D18) è applicato dopo il clipping, così i marks del
+  pannello centrale traslano con la parte di pezzo che si apre.
+
+Costanti di forma Design 4041 (in testa a `draft_jacket_design.py`): scollo
+dietro abbassato 0.300/0.400 con tangente d'arrivo = quella dello scollo del
+blocco (0.51 mm), scollo davanti abbassato 0.405/0.405 fra la tangente del
+blocco e la ⊥ al c.f. (1.19 mm), colletto cucitura collo −14.4° con
+0.086/0.500 e 0.213/0.485 (0.49 mm), bordo esterno +6.9° con 0.439/0.461
+(0.38 mm), linea di rollo +15.1° con 0.328/0.383 (0.16 mm). La cucitura
+davanti manica "blend" usa `smooth_polyline` sui tre punti orlo/gomito/testa
+(1.33 mm dal disegno sul sottomanica): nessuna costante.
+
+**Valori generati alla 50** (per la fase 5): scollo abbassato 113.78 + 144.49 =
+**258.27** · spalle 4041 147.35/142.35 · carré dietro 222.07 (disegnato 221.87)
+e davanti 224.72 (224.75) · pannello dietro 461.03 (461.14) · orlo dietro
+289.49 + davanti 292.82 = **cinturino 582.31** (582.51) · passo occhielli
+130.61 · polsino **321.47** · testa manica 333.85 + 197.80 = 531.65 contro
+Ac 531.15 (**agio 0.50 mm**) · aree: i tre pannelli dietro ricompongono
+esattamente il dietro design, i quattro davanti lo ricompongono più la
+striscia di 2 cm del pintuck.
