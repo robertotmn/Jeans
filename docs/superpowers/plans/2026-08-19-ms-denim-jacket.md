@@ -841,3 +841,25 @@ taglie 44/50/56 e Bh 190: 17 pezzi, nessuna eccezione, foglio singolo
   scende da 1.0 a 0.5 cm. Unico effetto collaterale: il Δ fra le due cuciture
   dietro alla taglia 62 passa da 2.90 a 3.01 mm, quindi l'invariante
   multi-taglia sale da 3.0 a 3.5 mm.
+- **E8.2 — la patta del taschino non è un pezzo in piega.** Il bordo alto era
+  chiamato `fold_edge`, quindi D27 gli toglieva il margine proprio dove il
+  pezzo si cuce sul carré, in contraddizione con la tabella dei pezzi (x 4
+  specchiato, nessuna piega). Ora è una sola catena `seam` come il sacchetto
+  del taschino, che è lo stesso pentagono.
+- **E8.3 — degradazione invece di eccezione sui corpi sproporzionati.** Il ramo
+  giacca sollevava la `ValueError` grezza di `PatternPiece` (nessun pezzo, solo
+  un QMessageBox) per corpi plausibili con vita larga sul petto stretto, mentre
+  il ramo jeans degrada sempre con warning di dominio. Due clamp in
+  `design_body` (report `warnings`, propagati da `build_jacket_pattern`):
+  la linea del carré davanti resta almeno `FRONT_YOKE_MARGIN_MM = 20` dentro
+  il giromanica, e le due cuciture del pannello davanti si spostano insieme
+  verso il c.f. finché il fianchetto tiene `FRONT_PANEL_MIN_WIDTH_MM = 5` dal
+  punto più avanzato del giro sotto il carré (le taglie 44–62 del libro ne
+  hanno 20–72, nessun clamp scatta su di esse; su 1000 corpi plausibili
+  casuali scatta 9 volte). In `build_jacket_pattern` un contorno di taglio non
+  offsettabile non uccide più il pattern: il pezzo esce con la sola linea netta
+  e il warning "margine troppo largo per <pezzo>". Su 2000 misure casuali
+  (Bh 150–200, Cg 75–135, Wg 60–135, Hg 80–145, Sl 40–78) i 17 pezzi escono
+  sempre; restano casi impossibili fuori da qualunque corporatura reale
+  (Bh 131 con Wg 132, Sl 27 su Bh 197), dove l'eccezione arriva ancora — come
+  già succede al ramo jeans su misure incoerenti.

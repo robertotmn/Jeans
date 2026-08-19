@@ -388,6 +388,29 @@ def test_marks_are_clipped_panel_by_panel(design):
     assert sum(shares) == pytest.approx(POCKET_OPENING_WIDTH_MM, abs=1.0)
 
 
+# ---- degenerate bodies -----------------------------------------------------
+
+@pytest.mark.parametrize("kw,expected", [
+    (dict(body_height=163.0, chest_girth=81.0, waist_girth=104.0,
+          hip_girth=116.0, sleeve_length=59.0), "pannello davanti spostate"),
+    (dict(body_height=150.0, chest_girth=99.6, waist_girth=120.6,
+          hip_girth=130.4, sleeve_length=71.4), "carre davanti fuori"),
+])
+def test_narrow_chest_over_a_big_waist_is_clamped_with_a_warning(kw, expected):
+    """The booklet places the yoke and the panel seams off the buttonhole
+    spacing, which stops fitting when the waist dwarfs the chest: the draft
+    clamps and says so instead of producing a piece that crosses itself."""
+    m = JacketMeasurements.from_cm(**kw)
+    back = draft_jacket_back(m)
+    front = draft_jacket_front(m, back)
+    db = design_body(back, front)
+    assert any(expected in w for w in db.report["warnings"]), db.report["warnings"]
+    marks = front_jacket_marks(db)
+    for piece in (build_front_yoke(db, marks), build_front_centre(db, marks),
+                  build_front_chest_panel(db, marks), build_front_side_panel(db, marks)):
+        assert Polygon([(p.x, p.y) for p in piece.outline()]).is_simple, piece.name
+
+
 # ---- invariants across sizes -----------------------------------------------
 
 @pytest.mark.parametrize("size", SIZES)
@@ -396,6 +419,7 @@ def test_design_invariants(size):
     lm, r = db.landmarks, db.report
 
     assert sorted(pieces) == sorted(PIECE_NAMES)
+    assert r["warnings"] == []          # no clamp bites on the booklet's sizes
     for name, piece in pieces.items():
         assert Polygon([(p.x, p.y) for p in piece.outline()]).is_simple, name
         assert distance(piece.edges[-1][1][-1], piece.edges[0][1][0]) < 1e-6, name

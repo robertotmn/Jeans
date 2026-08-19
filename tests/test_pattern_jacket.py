@@ -97,6 +97,24 @@ def test_jacket_pattern_other_sizes(size):
         assert w.startswith("Check Hg") or w.startswith("agio testa"), w
 
 
+@pytest.mark.parametrize("field,value", [
+    ("chest_girth", 78.0), ("chest_girth", 133.0),     # narrow / very wide chest
+    ("waist_girth", 122.0), ("waist_girth", 140.0),    # big belly over that chest
+    ("hip_girth", 140.0), ("sleeve_length", 33.0), ("body_height", 150.0),
+])
+def test_jacket_pattern_degrades_instead_of_raising(field, value):
+    """Out-of-proportion bodies must come out as a pattern plus a warning, the
+    way the jeans branch does, never as a bare geometry error."""
+    fields = {"body_height": 179.0, "chest_girth": 100.0, "waist_girth": 90.0,
+              "hip_girth": 102.0, "sleeve_length": 64.0, field: value}
+    pat = build_jacket_pattern(JacketMeasurements.from_cm(**fields))
+    assert {p.name for p in pat} == EXPECTED_JACKET_PIECES
+    for piece in pat:
+        assert Polygon([(p.x, p.y) for p in piece.outline]).is_simple, piece.name
+        if piece.cut_outline is None:                  # degraded, and it says so
+            assert any(piece.name in w for w in pat.report["warnings"])
+
+
 # ---------------------------------------------------------------------------
 # Jeans regression: the fold rule must be inert on Design 3069
 # ---------------------------------------------------------------------------

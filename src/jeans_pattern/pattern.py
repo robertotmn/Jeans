@@ -224,9 +224,22 @@ def build_jacket_pattern(m: JacketMeasurements,
               upper, under, cuff, collar, band,
               build_chest_pocket_flap(), build_chest_pocket_bag(),
               build_side_pocket_welt(), build_side_pocket_bag(), build_tab()]
-    pieces = [_make_piece(d.name, d.edges, sa,
-                          construction_lines=d.construction_lines, labels=d.labels)
-              for d in drafts]
+    warnings = list(front.report["warnings"]) + list(db.report["warnings"])
+    warnings += list(collar.report["warnings"]) + list(upper.report["warnings"])
+
+    def piece(d) -> PatternPiece:
+        """An allowance wider than the local curvature folds the cut line onto
+        itself; the piece is still usable, so it ships with the net line only."""
+        try:
+            return _make_piece(d.name, d.edges, sa,
+                               construction_lines=d.construction_lines, labels=d.labels)
+        except ValueError:
+            warnings.append(f"margine troppo largo per {d.name}: "
+                            f"contorno di taglio non generato")
+            return _make_piece(d.name, d.edges, SeamAllowances(0.0, 0.0),
+                               construction_lines=d.construction_lines, labels=d.labels)
+
+    pieces = [piece(d) for d in drafts]
 
     def seam(draft, name: str) -> float:
         return sum(arc_length(pts) for n, pts in draft.edges if n == name)
@@ -254,8 +267,6 @@ def build_jacket_pattern(m: JacketMeasurements,
          seam(front_side, "panel_seam")),
         ("fianchi", seam(back_side, "side"), seam(front_side, "side")),
     ]
-    warnings = list(front.report["warnings"]) + list(collar.report["warnings"])
-    warnings += upper.report["warnings"]
     for label, a, b in checks:
         if abs(a - b) > SEAM_MATCH_TOL_MM:
             warnings.append(f"{label}: {a / 10:.1f} cm contro {b / 10:.1f} cm")

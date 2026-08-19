@@ -84,6 +84,15 @@ BUTTON_MARK_R_MM = 5.0
 BUTTONHOLE_LEN_MM = 22.0
 BUTTONHOLE_PAST_CF_MM = 5.5
 
+# The booklet draws the yoke and the panel seams off the buttonhole spacing,
+# which assumes a chest wide enough for the pocket to fit between the placket
+# and the armhole. On a big waist over a narrow chest it stops fitting: these
+# two clamps keep the front panels constructible and put a warning in the
+# report, the way the jeans draft degrades on out-of-proportion measurements.
+FRONT_YOKE_MARGIN_MM = 20.0      # the yoke line stays this far inside the armhole
+FRONT_PANEL_MIN_WIDTH_MM = 5.0   # and the side panel this wide at the yoke (the
+                                 # book's own sizes 44-62 keep 20 to 72 mm there)
+
 # ---- collar amounts quoted by the booklet (page 14, step 2) ---------------
 COLLAR_CF_SEAM_MM = 10.0          # "measure 1 cm upward at the centre front"
 COLLAR_CB_SEAM_MM = 15.0          # "1.5 cm ... for the roll of the collar stand"
@@ -366,7 +375,17 @@ def design_body(back: JacketBackDraft, front: JacketFrontDraft) -> DesignBody:
                for i in range(5)]
 
     armhole_f = front.edge("armhole")
+    warnings = []
     y_yoke = buttons[1].y - FRONT_YOKE_ABOVE_BH2_MM
+    y_lo = min(p.y for p in armhole_f) + FRONT_YOKE_MARGIN_MM
+    y_hi = max(p.y for p in armhole_f) - FRONT_YOKE_MARGIN_MM
+    if not y_lo <= y_yoke <= y_hi:
+        clamped = min(max(y_yoke, y_lo), y_hi)
+        warnings.append(
+            f"carre davanti fuori dal giromanica: linea alzata/abbassata di "
+            f"{abs(clamped - y_yoke) / 10:.1f} cm rispetto all'occhiello n. 2"
+        )
+        y_yoke = clamped
     yoke_ah_f = _at_y(armhole_f, y_yoke)
     yoke_edge_f = _at_y([edge_top, edge_hem], y_yoke)
     cf_at_yoke = _at_y([neck_cf, hem_cf], y_yoke)
@@ -386,6 +405,20 @@ def design_body(back: JacketBackDraft, front: JacketFrontDraft) -> DesignBody:
         return [line_intersection(top, bottom, *horizontal_line_through(y_yoke)), bottom]
 
     seam_cf, seam_side = panel_seam(1.0), panel_seam(-1.0)
+    # measured against the widest point of the armhole below the yoke, which is
+    # where the side panel is narrowest; both seams move together so the pocket
+    # keeps straddling them, as far as the centre front panel can give way
+    x_armhole = max(p.x for p in armhole_f if p.y >= y_yoke)
+    short = min(x_armhole + FRONT_PANEL_MIN_WIDTH_MM - seam_side[0].x,
+                yoke_edge_f.x - FRONT_PANEL_MIN_WIDTH_MM - seam_cf[0].x)
+    if short > 0.0:
+        seam_cf, seam_side = ([Point(seam[0].x + short, seam[0].y),
+                               _at_x(hem_f, seam[1].x + short)]
+                              for seam in (seam_cf, seam_side))
+        warnings.append(
+            f"cuciture del pannello davanti spostate di {short / 10:.1f} cm verso "
+            f"il c.f.: petto stretto rispetto alla vita"
+        )
 
     welt_lo = Point(fm["P_top"].x, _at_x(hem_f, fm["P_top"].x).y - SIDE_POCKET_ABOVE_HEM_MM)
     dx = SIDE_POCKET_TOP_FROM_PITCH_MM
@@ -457,6 +490,7 @@ def design_body(back: JacketBackDraft, front: JacketFrontDraft) -> DesignBody:
         "armhole_circ_mm": front.report["armhole_circ_mm"],
         "buttonhole_pitch_mm": distance(buttons[0], buttons[4]) / 4,
         "panel_notch_mm": hem_len_b / 2 - BACK_PANEL_AT_HEM_MM,
+        "warnings": warnings,
     }
     return DesignBody(back=back_edges, front=front_edges, landmarks=landmarks,
                       lines=lines, report=report)
