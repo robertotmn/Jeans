@@ -123,10 +123,10 @@ Emendamenti rispetto alle quote stampate (dettaglio e motivazione nel piano
 - **D12** — `Sch`/`Scw` ricalibrate: Ah e Ac misurate sul blocco parametrico
   escono ~0.5 % sotto i numeri del chart, due costanti di calibrazione
   riportano l'altezza e la larghezza della testa sui valori dichiarati.
-- **D13** — fondo manica `Sh` = 31 cm dal chart; l'etichetta "½ sleeve hem 15"
-  del disegno è incoerente col chart, per cui l'angolo d'orlo della manica cade
-  4.6 mm fuori dal disegnato (eccezione dichiarata nell'overlay di verifica).
-- **D14** — piega dietro della manica al gomito = piega davanti + ½Sh + 3.5 cm:
+- **D13** — fondo manica `Sh` = 30 cm dal disegno (etichetta "½ sleeve hem 15",
+  metà disegnata 15.05, polsino disegnato 31.4): il chart stampa 31.0, mezzo
+  centimetro in più sulla metà come già fa per `Nw`.
+- **D14** — piega dietro della manica al gomito = piega davanti + ½Sh + 4.0 cm:
   riproduce esattamente il disegno, mentre il "+4.5" stampato non torna.
 
 ## Sviluppo

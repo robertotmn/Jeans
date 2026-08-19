@@ -34,9 +34,6 @@ PIECE_NAMES = [
 ]
 LANDMARK_TOL_MM = 2.5
 CURVE_TOL_MM = 2.0
-# Everything anchored on the sleeve hem corner inherits the 4.6 mm the block
-# already carries there (D13, sleeve hem taken from the chart not the drawing).
-B_HEM_TOL_MM = 6.5
 
 
 def build(size: str):
@@ -263,9 +260,8 @@ def test_cuff_matches_the_shortened_sleeve_hem(design, jacket_reference):
     assert cuff.report["length_mm"] == pytest.approx(
         pieces["sopramanica"].report["hem_len_mm"]
         + pieces["sottomanica"].report["hem_len_mm"])
-    # the drawn cuff is 31.4: the gap is the block's own hem corner (D13)
     assert cuff.report["length_mm"] == pytest.approx(
-        jacket_reference["design_sleeve"]["cuff"]["length_mm"], abs=8.0)
+        jacket_reference["design_sleeve"]["cuff"]["length_mm"], abs=1.5)
 
 
 # ---- sleeve ----------------------------------------------------------------
@@ -275,7 +271,7 @@ def test_sleeve_is_shortened_by_the_cuff_width(design, jacket_reference):
     for name, part in (("sopramanica", "upper"), ("sottomanica", "under")):
         ref = jacket_reference["design_sleeve"][part]["landmarks"]["hem_back"]
         hem = dict(pieces[name].edges)["cuff_seam"]
-        assert distance(hem[0], Point(*ref)) < B_HEM_TOL_MM
+        assert distance(hem[0], Point(*ref)) < LANDMARK_TOL_MM
         assert distance(hem[0], sleeve.landmarks["B_hem"]) == pytest.approx(CUFF_HEIGHT_MM)
 
 
@@ -294,7 +290,7 @@ def test_sleeve_back_seam_and_vent_match_the_drawing(design, jacket_reference, n
     ref_edges = jacket_reference["design_sleeve"][part]["edges"]
     ref = ref_edges["back_seam"] + ref_edges["back_fold"][1:]
     piece = design[5][name]
-    assert max_deviation_to_polyline(dict(piece.edges)["back_seam"], ref) < B_HEM_TOL_MM
+    assert max_deviation_to_polyline(dict(piece.edges)["back_seam"], ref) < CURVE_TOL_MM
     assert piece.report["vent_mm"] == pytest.approx(SLEEVE_VENT_MM)
 
 

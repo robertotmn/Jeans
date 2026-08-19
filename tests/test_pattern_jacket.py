@@ -81,7 +81,7 @@ def test_jacket_report(size50_jacket):
     assert r["neckline_mm"] == pytest.approx(258.27, abs=0.5)
     assert abs(r["collar_correction_mm"]) < 2.5
     assert r["waistband_len_mm"] == pytest.approx(582.31, abs=0.5)
-    assert r["cuff_len_mm"] == pytest.approx(321.47, abs=0.5)
+    assert r["cuff_len_mm"] == pytest.approx(313.07, abs=0.5)   # drawn 314.0
     assert r["warnings"] == []
 
 

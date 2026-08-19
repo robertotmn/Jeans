@@ -16,10 +16,6 @@ from jeans_pattern.measurements_jacket import JacketMeasurements
 
 LANDMARK_TOL_MM = 1.5
 CURVE_TOL_MM = 2.0
-# D13: the hem corner is placed with the chart's sleeve hem (31.0 cm) while the
-# drawing follows its own printed "1/2 sleeve hem 15", 4.6 mm further in. Every
-# straight edge that ends at B_hem inherits that gap.
-B_HEM_TOL_MM = 5.0
 
 
 @pytest.fixture(scope="module")
@@ -55,7 +51,7 @@ def test_sleeve_measurements_match_the_chart(sleeve):
 @pytest.mark.parametrize("name", [
     "E", "Sp", "M1", "M2", "FAN", "Q", "T", "U2", "U22", "FST", "UST",
     "fold_elbow", "fold_elbow_front", "elbow_front", "fold_hem", "hem_front",
-    "F_b", "merge_back",
+    "F_b", "merge_back", "B_hem",
 ])
 def test_landmark_matches_book(sleeve, book, name):
     ours = sleeve[1].landmarks[name]
@@ -64,38 +60,30 @@ def test_landmark_matches_book(sleeve, book, name):
         f"{name}: ours ({ours.x:.1f},{ours.y:.1f}) vs book ({ref.x:.1f},{ref.y:.1f})"
 
 
-def test_hem_corner_follows_the_chart_not_the_drawing(sleeve, book):
+def test_hem_corner_follows_the_drawing_not_the_chart(sleeve, book):
     """D13: 1/2 Sh measured diagonally from the front to the back sleeve length.
-    The drawing places it 4.6 mm short, following its own "1/2 sleeve hem 15"
-    label instead of the 31.0 the chart states."""
+    The drawing labels that half "sleeve hem 15" and draws 15.05, so Sh is 30.0
+    and the chart's 31.0 is a typo - the same half-centimetre the chart adds to
+    Nw (D1)."""
     _, s = sleeve
     b_hem = s.landmarks["B_hem"]
     front_hem = Point(0.0, s.report["levels_y_mm"]["front_hem"])
     assert distance(front_hem, b_hem) == pytest.approx(SLEEVE_HEM_MM / 2)
-    assert distance(b_hem, Point(*book["B_hem"])) == pytest.approx(4.6, abs=0.5)
+    assert distance(front_hem, Point(*book["B_hem"])) == pytest.approx(150.5, abs=0.5)
 
 
 # ---- curve shapes vs the book drawing --------------------------------------
 
 @pytest.mark.parametrize("part,edge", [
     ("upper", "cap_front"), ("upper", "cap"), ("upper", "back_seam"),
-    ("upper", "front_seam"), ("under", "cap"), ("under", "back_seam"),
-    ("under", "front_seam"),
+    ("upper", "front_seam"), ("upper", "back_fold"), ("upper", "hem"),
+    ("under", "cap"), ("under", "back_seam"), ("under", "front_seam"),
+    ("under", "hem"),
 ])
 def test_edge_matches_book(sleeve, jacket_reference, part, edge):
     ref = jacket_reference["sleeve_block"][part]["edges"][edge]
     dev = max_deviation_to_polyline(sleeve[1].edge(part, edge), ref)
     assert dev < CURVE_TOL_MM, f"{part} {edge} deviates {dev:.2f} mm from the drawing"
-
-
-@pytest.mark.parametrize("part,edge", [
-    ("upper", "back_fold"), ("upper", "hem"), ("under", "hem"),
-])
-def test_edge_anchored_on_the_hem_corner_matches_within_the_d13_gap(
-        sleeve, jacket_reference, part, edge):
-    ref = jacket_reference["sleeve_block"][part]["edges"][edge]
-    dev = max_deviation_to_polyline(sleeve[1].edge(part, edge), ref)
-    assert dev < B_HEM_TOL_MM, f"{part} {edge} deviates {dev:.2f} mm from the drawing"
 
 
 def test_back_seam_bellies_match_the_drawing(sleeve, jacket_reference):
@@ -126,9 +114,11 @@ def test_back_seams_are_almost_equal(sleeve):
     assert s.report["back_seam_under_mm"] == pytest.approx(608.4, abs=1.5)
 
 
-def test_hem_width_matches_the_chart_sleeve_hem(sleeve):
+def test_hem_width_matches_the_drawn_sleeve_hem(sleeve):
+    """The two hem edges of the drawing add up to 30.1 cm (18.00 + 12.11)."""
     _, s = sleeve
     assert s.report["hem_len_mm"] == pytest.approx(SLEEVE_HEM_MM, abs=1.0)
+    assert s.report["hem_len_mm"] == pytest.approx(301.1, abs=1.5)
 
 
 def test_notches_sit_on_the_upper_sleeve_cap(sleeve):
@@ -171,9 +161,10 @@ def test_sleeve_block_invariants(size):
             == pytest.approx(distance(lm["F_b"], lm["B_hem"])))
 
     # the cap is always longer than the armhole it is set into; the two back
-    # seams stay close (they drift apart on big sizes because Sh is fixed, D13)
+    # seams stay close (they drift apart on big sizes because Sh is fixed, D13:
+    # 0.4 / 1.0 / 1.9 / 3.0 mm from size 44 to 62)
     assert r["cap_ease_mm"] > 0
-    assert abs(r["back_seam_upper_mm"] - r["back_seam_under_mm"]) < 3.0
+    assert abs(r["back_seam_upper_mm"] - r["back_seam_under_mm"]) < 3.5
 
     # both pieces are simple closed polygons
     for part, edges in (("upper", s.upper), ("under", s.under)):

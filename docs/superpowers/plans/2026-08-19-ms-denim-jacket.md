@@ -804,8 +804,6 @@ e colletto p. 14) e chiude con `LANDMARK_TOL_MM = 2.5` / `CURVE_TOL_MM = 3.0`.
 Margine minimo residuo **0.34 mm** (occhiello n. 2). Eccezioni whitelistate,
 tutte già decise in fase di calibrazione:
 
-- **B_hem e i bordi ancorati a esso** (`upper back_fold`, `upper hem`,
-  `under hem`) a 4.48–4.60 mm, soglia 5.5 mm — D13/E3.6.
 - **occhielli 1–5** a 4.87–5.66 mm, soglia 6.0 mm — E4.2 (lo scostamento è
   tutto in x: la fessura disegnata sconfina 0.55 cm oltre il c.f.).
 - **`panel_cf`/`panel_side`** misurate libro→generato: il prolungamento di 1 cm
@@ -823,3 +821,23 @@ Il design manica di p. 15 resta fuori dall'overlay: il libro disegna la manica
 Smoke test di export reale (PDF singolo + SVG, `SeamAllowances(15, 30)`) su
 taglie 44/50/56 e Bh 190: 17 pezzi, nessuna eccezione, foglio singolo
 4.20–4.62 m × 0.80–0.87 m.
+
+**Revisione (2026-08-19).** Correzioni dopo la review dei findings.
+
+- **E8.1 — D13 rovesciata: `Sh` = 30.0 cm dal disegno, non 31.0 dal chart**
+  (`SLEEVE_HEM_MM = 300`, `BACK_FOLD_ADD_MM = 40` per tenere F_b a 21.0 come
+  disegnato). Il disegno lo dichiara tre volte: l'etichetta stampata "sleeve
+  hem 15" sulla metà d'orlo, la geometria estratta (½ = hypot(147.47, 30.02) =
+  150.5 mm; i due bordi d'orlo sommano 180.02 + 121.06 = 301.1) e il polsino di
+  p. 15 (314.0 disegnato contro 313.1 generato, era 321.5). Il chart stampa
+  mezzo centimetro in più sulla metà, esattamente come fa per `Nw` (D1, chart
+  8.5 contro 8.0 disegnato): stesso refuso, stessa risoluzione — il disegno
+  vince quando ha doppia conferma grafica. Cadono così **tutte** le eccezioni
+  D13/E3.6/E4.5: B_hem 4.60 → 0.50 mm, `upper back_fold` 4.48 → 0.50,
+  `upper hem` 4.60 → 0.05, `under hem` 4.60 → 0.20, cuciture dietro 1.48–1.55
+  (erano 0.63–1.07), polsino 7.5 mm fuori → 0.9. Rimosse le tolleranze
+  dedicate dei test manica/design e la whitelist `B_HEM_ITEMS` dell'overlay;
+  il "+4.5" stampato del passo 6 resta un emendamento (D14), ma lo scarto
+  scende da 1.0 a 0.5 cm. Unico effetto collaterale: il Δ fra le due cuciture
+  dietro alla taglia 62 passa da 2.90 a 3.01 mm, quindi l'invariante
+  multi-taglia sale da 3.0 a 3.5 mm.

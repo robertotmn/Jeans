@@ -34,11 +34,6 @@ CURVE_TOL_MM = 3.0
 PANEL_GAP_MM = 70.0
 
 # Documented exceptions (plan "Emendamenti dalla calibrazione", size-50 values).
-# D13/E3.6: the sleeve hem corner is placed with the chart's sleeve hem 31.0 cm
-# while the drawing follows its own printed "1/2 sleeve hem 15", 4.6 mm further
-# in; B_hem and the straight edges that end there inherit that gap.
-B_HEM_TOL_MM = 5.5
-B_HEM_ITEMS = {"B_hem", "upper back_fold", "upper hem", "under hem"}
 # E4.2: the drawn buttonhole slot reaches 0.55 cm past the c.f., so the marks
 # sit that far off the c.f. the booklet prescribes; the y placement - the part
 # the booklet actually quotes - stays inside the landmark tolerance.
@@ -51,8 +46,6 @@ REVERSED_ITEMS = {"panel_cf", "panel_side"}
 
 
 def tolerance(name: str, default: float) -> float:
-    if name in B_HEM_ITEMS:
-        return B_HEM_TOL_MM
     if name in BUTTONHOLE_ITEMS:
         return BUTTONHOLE_TOL_MM
     return default

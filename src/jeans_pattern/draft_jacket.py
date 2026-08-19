@@ -56,7 +56,7 @@ HIP_EASE_MIN_MM = 50.0         # "Check Hg: at least Hg + 5 - 6 cm"
 # ---- sleeve amounts quoted by the booklet (pages 12-13) -------------------
 SCH_SUB_MM = 40.0              # Sch = 1/2 Ah minus (1/10 of 1/2 Ah + 4.0)
 SCW_SUB_MM = 25.0              # Scw = 1/2 Ac minus 2.5
-SLEEVE_HEM_MM = 310.0          # Sh, a style choice taken from the chart (D13)
+SLEEVE_HEM_MM = 300.0          # Sh, the drawing's own "sleeve hem 15" half (D13)
 SLEEVE_LENGTH_SPLIT_MM = 15.0  # "measure 1.5 cm up and down" for front/back length
 ELBOW_UP_MM = 15.0             # elbow = midway biceps/front sleeve length, minus 1.5
 FAN_UP_SUB_MM = 10.0           # FAN = 1/4 scye width minus 1 cm above the biceps
@@ -66,7 +66,7 @@ U2_ALONG_MM = 20.0             # "measure 2 cm downward ... along the guideline"
 U22_FROM_Q_MM = 22.0           # "measure 2.2 cm ... to the right for a better transition"
 FRONT_TAPER_ELBOW_MM = 20.0    # "taper the front sleeve 2 cm at the elbow line"
 FRONT_SEAM_OFFSET_MM = 30.0    # "measure 3 cm from the front sleeve fold ... outside and inside"
-BACK_FOLD_ADD_MM = 35.0        # back fold at the elbow = front fold + 1/2 Sh + 3.5 (D14)
+BACK_FOLD_ADD_MM = 40.0        # back fold at the elbow = front fold + 1/2 Sh + 4.0 (D14)
 BACK_MERGE_BELOW_ELBOW_MM = 90.0  # under-sleeve back seam rejoins the fold here (D16)
 
 # Ah and Ac are measured on the block just drafted, not taken from the chart.
@@ -546,7 +546,7 @@ def draft_jacket_sleeve(m: JacketMeasurements, back: JacketBackDraft,
     hem_front = Point(FRONT_SEAM_OFFSET_MM, y_front)
 
     # 6. hem corner and back fold: 1/2 Sh diagonally from the front to the back
-    # sleeve length, back fold at the elbow 1/2 Sh + 3.5 cm right of the front.
+    # sleeve length, back fold at the elbow 1/2 Sh + 4.0 cm right of the front.
     b_hem = Point(((sh / 2) ** 2 - (y_back - y_front) ** 2) ** 0.5, y_back)
     f_b = Point(fold_elbow.x + sh / 2 + BACK_FOLD_ADD_MM, y_elbow)
     back_fold_dir = unit_vector(b_hem.x - f_b.x, b_hem.y - f_b.y)
