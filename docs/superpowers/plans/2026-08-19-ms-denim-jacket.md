@@ -883,3 +883,22 @@ taglie 44/50/56 e Bh 190: 17 pezzi, nessuna eccezione, foglio singolo
   tautologico ed è sostituito dal confronto punto a punto fra il giro del
   sottomanica e quello del blocco. `.gitignore` ignora anche
   `jacket_pattern.pdf/.svg`, i nomi di export proposti col modello giacca.
+- **E8.6 — l'overlay misura in entrambe le direzioni.** `max_dev` era una
+  Hausdorff a senso unico (generato → riferimento): un bordo generato più corto
+  di quello disegnato passava con deviazione ~0. Ora è simmetrica e i due casi in
+  cui una delle due polilinee esce dall'altra per costruzione sono dichiarati
+  singolarmente: `panel_cf`/`panel_side` restano misurati libro→generato
+  (D19/E4.7), `pocket_axis` resta generato→libro — l'asse del taschino è una
+  linea di costruzione e la regola ("mark the pocket entry and square down from
+  the midpoint") non ne fissa l'estremo alto: il disegno lo fa partire 7.0 mm
+  sopra la punta della patta, appena sotto il proprio simbolo di bottone
+  (cerchio di raggio 9.0 mm, bordo inferiore ancora 2.0 mm più in alto), il
+  nostro parte sulla punta della patta; l'estremo basso e la x coincidono.
+  Il colletto non è più confrontato bordo per bordo contro l'INTERO contorno di
+  riferimento ma contro i quattro tratti tagliati a punta/cf_seam/cb_seam/cb_top:
+  emerge così il vero scarto al c.b., **1.95 mm**, cioè la differenza fra la
+  baseline generata (258.27) e quella disegnata (260.22) già dichiarata in E4.4.
+  Unica correzione al codice: l'impuntura del cannoncino parte ora dalla curva
+  dello scollo invece che dalla squadratura per il punto collo c.f. ("collo→orlo"
+  del passo 5 del design corpo), da 2.98 a 0.54 mm. Margine minimo del gate
+  invariato, 0.86 mm su SP0_f.

@@ -426,10 +426,15 @@ def design_body(back: JacketBackDraft, front: JacketFrontDraft) -> DesignBody:
     welt_dir = unit_vector(welt_hi.x - welt_lo.x, welt_hi.y - welt_lo.y)
     welt_off = (-welt_dir[1] * SIDE_POCKET_WELT_MM, welt_dir[0] * SIDE_POCKET_WELT_MM)
 
+    # the placket topstitch runs "from the neckline to the hem": its upper end
+    # sits on the neck curve, not on the square-off through the c.f. neck point
+    placket_hem = off_cf(hem_cf, x_placket)
+    placket_neck = _cross(neck_f, off_cf(neck_cf, x_placket), placket_hem)
+
     lines = {
         "cf": [neck_cf, hem_cf],
         "fold_edge": [edge_top, edge_hem],
-        "placket": [off_cf(neck_cf, x_placket), off_cf(hem_cf, x_placket)],
+        "placket": [placket_neck, placket_hem],
         "pintuck_inner": [tuck_inner_top, off_cf(hem_cf, x_placket - PINTUCK_INNER_MM)],
         "pintuck_outer": [tuck_outer_top, off_cf(hem_cf, x_placket - PINTUCK_OUTER_MM)],
         "yoke_back": [yoke_ah_b, yoke_cb],

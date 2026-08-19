@@ -34,14 +34,22 @@ LANDMARK_TOL_MM = 2.5
 CURVE_TOL_MM = 3.0
 PANEL_GAP_MM = 70.0
 
-# Documented exceptions (plan "Emendamenti dalla calibrazione", size-50 values).
+# Documented exceptions (plan "Emendamenti dalla calibrazione", size-50 values),
+# measured one way because one of the two polylines deliberately runs past the
+# other and the symmetric distance would report nothing but that overhang.
 # D19/E4.7: the front panel seams are extended 1 cm up to the yoke line to close
 # the three panels, while the drawing stops them on the pocket entry line. The
-# extension is collinear, so these two are measured book-to-generated.
-REVERSED_ITEMS = {"panel_cf", "panel_side"}
+# extension is collinear, so only the drawn points are measured.
+BOOK_ONLY_ITEMS = {"panel_cf", "panel_side"}
+# The chest pocket axis is a thin construction line and the booklet's rule
+# ("mark the pocket entry and square down from the midpoint") fixes no upper
+# end: ours starts on the flap point, the drawn one 7.0 mm above it, just clear
+# of its own button symbol (page 14: circle of radius 9.0 mm whose lower edge
+# sits 2.0 mm higher still). Both run down to the hem, so only ours is measured.
+GEN_ONLY_ITEMS = {"pocket_axis"}
 
 
-def max_dev(gen, ref) -> float:
+def one_way_dev(gen, ref) -> float:
     """Max over the points of `gen` of the distance to the polyline `ref`."""
     def d_pt(p):
         best = float("inf")
@@ -54,6 +62,16 @@ def max_dev(gen, ref) -> float:
             best = min(best, math.hypot(p[0] - a[0] - t * vx, p[1] - a[1] - t * vy))
         return best
     return max(d_pt(p) for p in gen)
+
+
+def max_dev(gen, ref) -> float:
+    """Symmetric (Hausdorff) distance between the two polylines.
+
+    Both directions are needed: a generated edge that stops short of the drawn
+    one keeps all of its own points on the reference and would otherwise pass
+    with a deviation near zero.
+    """
+    return max(one_way_dev(gen, ref), one_way_dev(ref, gen))
 
 
 def main() -> int:
@@ -166,9 +184,24 @@ def main() -> int:
     panels.append(("design 4041 corpo (p. 14)", curves, marks, gen_only))
 
     # ---- panel 4: convertible collar (page 14, step 2) ---------------------
-    outline = [flip(p) for p in collar_ref["outline"]]
-    curves = [(f"colletto {name}", [flip(p) for p in pts(collar_edges[name])], outline)
-              for name in ("neck_seam", "fold_cb", "outer", "front")]
+    # the reference is one closed outline: cut it at the four drawn corners so
+    # that every generated edge meets its homologous stretch
+    ring = [tuple(p) for p in collar_ref["outline"][:-1]]
+    corner = {name: min(range(len(ring)), key=lambda i: math.dist(ring[i], xy))
+              for name, xy in collar_ref["landmarks"].items()}
+
+    def stretch(a, b):
+        i, j = corner[a], corner[b]
+        ways = (ring[i:j + 1] if i <= j else ring[i:] + ring[:j + 1],
+                ring[j:i + 1] if j <= i else ring[j:] + ring[:i + 1])
+        return min(ways, key=lambda w: sum(math.dist(p, q) for p, q in zip(w, w[1:])))
+
+    curves = [(f"colletto {name}", [flip(p) for p in pts(collar_edges[name])],
+               [flip(p) for p in stretch(a, b)])
+              for name, a, b in (("neck_seam", "cf_seam", "cb_seam"),
+                                 ("fold_cb", "cb_seam", "cb_top"),
+                                 ("outer", "cb_top", "point"),
+                                 ("front", "point", "cf_seam"))]
     curves.append(("colletto roll", [flip(p) for p in pts(collar.construction_lines[0])],
                    [flip(p) for p in collar_ref["lines"]["roll"]]))
     panels.append(("colletto (p. 14)", curves, [], []))
@@ -216,7 +249,8 @@ def main() -> int:
         print(f"{'item':28s} {'dev mm':>8s}")
         for name, gen, ref_pts in curves:
             ref_pts = [tuple(p) for p in ref_pts]
-            dev = (max_dev(ref_pts, gen) if name in REVERSED_ITEMS
+            dev = (one_way_dev(ref_pts, gen) if name in BOOK_ONLY_ITEMS
+                   else one_way_dev(gen, ref_pts) if name in GEN_ONLY_ITEMS
                    else max_dev(gen, ref_pts))
             tol = CURVE_TOL_MM
             print(f"{name:28s} {dev:8.2f}{'' if dev <= tol else '  <-- FAIL'}")
