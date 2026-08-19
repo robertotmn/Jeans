@@ -23,7 +23,8 @@ from reportlab.pdfgen import canvas
 
 from jeans_pattern.draft_jacket import (
     draft_jacket_back, draft_jacket_front, draft_jacket_sleeve)
-from jeans_pattern.draft_jacket_design import build_collar, design_body
+from jeans_pattern.draft_jacket_design import (
+    build_collar, design_body, front_jacket_marks)
 from jeans_pattern.measurements_jacket import JacketMeasurements
 
 REF_PATH = Path(__file__).resolve().parents[1] / "tests" / "data" / "ms_jacket_reference_size50.json"
@@ -34,21 +35,10 @@ CURVE_TOL_MM = 3.0
 PANEL_GAP_MM = 70.0
 
 # Documented exceptions (plan "Emendamenti dalla calibrazione", size-50 values).
-# E4.2: the drawn buttonhole slot reaches 0.55 cm past the c.f., so the marks
-# sit that far off the c.f. the booklet prescribes; the y placement - the part
-# the booklet actually quotes - stays inside the landmark tolerance.
-BUTTONHOLE_TOL_MM = 6.0
-BUTTONHOLE_ITEMS = {f"button{i}" for i in range(1, 6)}
 # D19/E4.7: the front panel seams are extended 1 cm up to the yoke line to close
 # the three panels, while the drawing stops them on the pocket entry line. The
 # extension is collinear, so these two are measured book-to-generated.
 REVERSED_ITEMS = {"panel_cf", "panel_side"}
-
-
-def tolerance(name: str, default: float) -> float:
-    if name in BUTTONHOLE_ITEMS:
-        return BUTTONHOLE_TOL_MM
-    return default
 
 
 def max_dev(gen, ref) -> float:
@@ -159,8 +149,17 @@ def main() -> int:
                        ("edge_hem", "hem_edge"), ("side_hem_f", "side_hem")):
         marks.append((ours, (db.landmarks[ours].x, db.landmarks[ours].y),
                       to_body(design["front"]["landmarks"][name])))
-    for i, p in enumerate(design["front"]["landmarks"]["buttonholes"], start=1):
-        marks.append((f"button{i}", (db.landmarks[f"button{i}"].x, db.landmarks[f"button{i}"].y),
+    # the drawing carries the buttonhole SLIT, not the button on the c.f., so
+    # the homologous mark is the centre of the generated slit (E4.2)
+    slits = sorted((mark for mark in front_jacket_marks(db)
+                    if max(q.y for q in mark) - min(q.y for q in mark) < 4.0
+                    and max(q.x for q in mark) - min(q.x for q in mark) > 15.0),
+                   key=lambda mark: min(q.y for q in mark))
+    for i, (slit, p) in enumerate(zip(slits, design["front"]["landmarks"]["buttonholes"]),
+                                  start=1):
+        marks.append((f"buttonhole{i}",
+                      ((min(q.x for q in slit) + max(q.x for q in slit)) / 2,
+                       (min(q.y for q in slit) + max(q.y for q in slit)) / 2),
                       to_body(p)))
     gen_only.append(pts(db.lines["fold_edge"]))
     gen_only.append(pts(db.lines["pocket_opening"]))
@@ -219,7 +218,7 @@ def main() -> int:
             ref_pts = [tuple(p) for p in ref_pts]
             dev = (max_dev(ref_pts, gen) if name in REVERSED_ITEMS
                    else max_dev(gen, ref_pts))
-            tol = tolerance(name, CURVE_TOL_MM)
+            tol = CURVE_TOL_MM
             print(f"{name:28s} {dev:8.2f}{'' if dev <= tol else '  <-- FAIL'}")
             headroom = min(headroom, (tol - dev, name))
             if dev > tol:
@@ -230,7 +229,7 @@ def main() -> int:
             draw(line, dx, blue)
         for name, gen, ref_pt in marks:
             dev = math.hypot(gen[0] - ref_pt[0], gen[1] - ref_pt[1])
-            tol = tolerance(name, LANDMARK_TOL_MM)
+            tol = LANDMARK_TOL_MM
             print(f"{'* ' + name:28s} {dev:8.2f}{'' if dev <= tol else '  <-- FAIL'}")
             headroom = min(headroom, (tol - dev, name))
             if dev > tol:

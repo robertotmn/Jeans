@@ -801,11 +801,9 @@ cinturino 515.1/582.3/649.6/722.0 · polsino 321.8/321.5/321.4/321.4.
 discussione. `scripts/verify_jacket_overlay.py` sovrappone il generato al libro
 su quattro pannelli (blocco corpo p. 11, blocco manica p. 12, corpo Design 4041
 e colletto p. 14) e chiude con `LANDMARK_TOL_MM = 2.5` / `CURVE_TOL_MM = 3.0`.
-Margine minimo residuo **0.34 mm** (occhiello n. 2). Eccezioni whitelistate,
-tutte già decise in fase di calibrazione:
+Margine minimo residuo **0.86 mm** (SP0_f, dopo E8.1 ed E8.4). Eccezioni
+whitelistate, tutte già decise in fase di calibrazione:
 
-- **occhielli 1–5** a 4.87–5.66 mm, soglia 6.0 mm — E4.2 (lo scostamento è
-  tutto in x: la fessura disegnata sconfina 0.55 cm oltre il c.f.).
 - **`panel_cf`/`panel_side`** misurate libro→generato: il prolungamento di 1 cm
   fino al carré (D19/E4.7) è collineare ma esce dalla polilinea estratta.
 - **`pocket_opening`**: il PDF estrae solo la linea d'apertura da 12 cm, il
@@ -863,3 +861,19 @@ taglie 44/50/56 e Bh 190: 17 pezzi, nessuna eccezione, foglio singolo
   sempre; restano casi impossibili fuori da qualunque corporatura reale
   (Bh 131 con Wg 132, Sl 27 su Bh 197), dove l'eccezione arriva ancora — come
   già succede al ramo jeans su misure incoerenti.
+- **E8.4 — oracoli per asole e bottoni.** Sei costanti di piazzamento
+  (`BUTTONHOLE_LEN_MM`, `BUTTONHOLE_PAST_CF_MM`, `TAB_BUTTONHOLE_LEN_MM`,
+  `TAB_BUTTONHOLE_FROM_END_MM`, `FLAP_BUTTON_MM`, `CUFF_MARK_INSET_MM`) non
+  erano presidiate da nulla: mutarle di ±3 mm lasciava la suite verde. Il JSON
+  di riferimento le conteneva già: fessura del cinturino 14.22→36.50 dal bordo
+  (c.f. a 20.0), fessura e bottone del polsino 275.52→296.59 e 15.01 dal bordo,
+  bottone della patta a 41.1 sotto il carré. Aggiunti quattro test in
+  `test_draft_jacket_design.py` (fessure c.f. e cinturino, polsino, linguetta
+  per D24, bottone patta): 23 mutanti su 24 (±2/±3 mm) muoiono, sopravvive solo
+  `FLAP_BUTTON_MM −2` perché il disegnato è 41.1 contro i 42.0 del codice.
+  Scarti misurati: fessure c.f. 0.75–1.12 mm, cinturino 1.2 mm (l'estremità
+  tonda generata sporge un po' più della disegnata), polsino 3.9 mm sull'inizio
+  della fessura (il libro la mette a 1.7 cm dall'estremità, D24 dice 1.5).
+  L'overlay confronta ora il **centro della fessura generata** contro quello
+  disegnato invece del bottone sul c.f.: cade la whitelist `BUTTONHOLE_ITEMS`
+  (6.0 mm) e il margine minimo del gate diventa reale, 0.86 mm.

@@ -130,6 +130,19 @@ def test_design_outline_matches_book(design, jacket_reference, to_body, side, ed
     assert dev < CURVE_TOL_MM, f"{side} {edge} deviates {dev:.2f} mm from the drawing"
 
 
+def horizontal_slots(marks: list[list[Point]]) -> list[list[Point]]:
+    """The buttonhole slots among a piece's marks: 3 mm across, over 1.5 cm
+    long, so neither a button circle (1 cm) nor any of the design lines."""
+    return [m for m in marks
+            if max(p.y for p in m) - min(p.y for p in m) < 4.0
+            and max(p.x for p in m) - min(p.x for p in m) > 15.0]
+
+
+def centre(pts: list[Point]) -> Point:
+    return Point((min(p.x for p in pts) + max(p.x for p in pts)) / 2,
+                 (min(p.y for p in pts) + max(p.y for p in pts)) / 2)
+
+
 def test_buttonholes_sit_where_the_book_puts_them(design, jacket_reference, to_body):
     lm = design[4].landmarks
     ref = jacket_reference["design_body"]["front"]["landmarks"]["buttonholes"]
@@ -138,6 +151,66 @@ def test_buttonholes_sit_where_the_book_puts_them(design, jacket_reference, to_b
         # the drawn slot centre sits ~0.55 cm inside the c.f.; the y placement
         # is the part the booklet actually prescribes
         assert abs(lm[f"button{i}"].y - to_body(p).y) < LANDMARK_TOL_MM
+
+
+def test_buttonhole_slots_match_the_drawn_slits(design, jacket_reference, to_body):
+    """The drawn buttonhole is the 2.2 cm slit itself, not the button: it is
+    what pins BUTTONHOLE_LEN_MM and BUTTONHOLE_PAST_CF_MM (E4.2). The five on
+    the front and the one on the waistband are the same slit."""
+    db, band = design[4], design[5]["cinturino"]
+    ref = jacket_reference["design_body"]
+    slots = sorted(horizontal_slots(front_jacket_marks(db)), key=lambda m: centre(m).y)
+    assert len(slots) == 5
+    for slot, p in zip(slots, ref["front"]["landmarks"]["buttonholes"]):
+        assert distance(centre(slot), to_body(p)) < LANDMARK_TOL_MM
+
+    # 14.22 -> 36.50 from the front edge, with the c.f. at 20.0: the slit runs
+    # 0.58 cm past the c.f. (our rounded end sticks out 1.2 mm further)
+    x0, x1 = ref["waistband"]["buttonhole_from_edge_mm"]
+    slot = horizontal_slots(band.construction_lines)
+    assert len(slot) == 1
+    assert min(p.x for p in slot[0]) == pytest.approx(x0, abs=1.5)
+    assert max(p.x for p in slot[0]) == pytest.approx(x1, abs=1.5)
+
+
+def test_cuff_button_and_buttonhole_match_the_drawing(design, jacket_reference):
+    """D24: buttonhole at the vent end, button at the front end, both 1.5 cm in.
+    The button lands on the drawn one; the drawn slit sits 0.4 cm further in
+    than the 1.5 cm the rule states."""
+    cuff = design[5]["polsino"]
+    ref = jacket_reference["design_sleeve"]["cuff"]
+    x0, x1 = ref["buttonhole_from_edge_mm"]
+    slot = horizontal_slots(cuff.construction_lines)
+    assert len(slot) == 1
+    assert cuff.report["length_mm"] - max(p.x for p in slot[0]) == pytest.approx(
+        ref["length_mm"] - x1, abs=4.0)
+    assert max(p.x for p in slot[0]) - min(p.x for p in slot[0]) == pytest.approx(
+        x1 - x0, abs=2.5)
+    button = [m for m in cuff.construction_lines if m not in slot]
+    assert centre(button[0]).x == pytest.approx(ref["button_from_edge_mm"], abs=0.5)
+    assert centre(button[0]).y == pytest.approx(cuff.report["height_mm"] / 2)
+
+
+def test_tab_buttonhole_follows_d24(design):
+    """The booklet draws the tab only on the waistband, so the slot on the piece
+    itself is D24: 2.5 cm vertical, 1.5 cm from the free end, centred."""
+    tab = design[5]["linguetta"]
+    assert len(tab.construction_lines) == 1
+    slot = tab.construction_lines[0]
+    ys = [p.y for p in slot]
+    assert max(ys) - min(ys) == pytest.approx(26.5)   # 2.5 cm plus the round end
+    assert min(ys) == pytest.approx((tab.report["height_mm"] - 25.0) / 2)
+    assert tab.report["length_mm"] - centre(slot).x == pytest.approx(15.0)
+
+
+def test_pocket_flap_button_matches_the_drawing(design, jacket_reference, to_body):
+    db, flap = design[4], design[5]["patta_taschino"]
+    ref = to_body(jacket_reference["design_body"]["front"]["landmarks"]["pocket_button"])
+    assert distance(db.landmarks["flap_button"], ref) < LANDMARK_TOL_MM
+    # the same 4.2 cm below the yoke, measured on the loose piece (drawn 4.11)
+    top = min(p.y for p in flap.outline())
+    assert centre(flap.construction_lines[0]).y - top == pytest.approx(
+        ref.y - db.lines["yoke_front"][0].y, abs=1.5)
 
 
 # ---- the rules the booklet states ------------------------------------------
