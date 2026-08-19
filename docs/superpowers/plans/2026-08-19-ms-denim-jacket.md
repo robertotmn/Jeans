@@ -902,3 +902,18 @@ taglie 44/50/56 e Bh 190: 17 pezzi, nessuna eccezione, foglio singolo
   dello scollo invece che dalla squadratura per il punto collo c.f. ("collo→orlo"
   del passo 5 del design corpo), da 2.98 a 0.54 mm. Margine minimo del gate
   invariato, 0.86 mm su SP0_f.
+- **E8.7 — tre delle otto verifiche di lunghezza accoppiata erano identità.**
+  E5.1 le dava tutte a 0.00 mm su ogni taglia perché tre di esse **non possono
+  scattare per nessun input**: `polsino/fondo manica` (il polsino *è* la somma
+  dei due bordi `cuff_seam` confrontati) e `pannello dietro` /
+  `pannello davanti fianco` (i due pezzi che si cuciono condividono gli stessi
+  due landmark, quindi il secondo membro è il primo al contrario). Non esiste per
+  loro una seconda sorgente indipendente senza reimplementare la costruzione,
+  quindi sono state tolte dalla lista con il motivo nel commento. Restano le
+  cinque che confrontano un intero con le parti in cui è stato tagliato
+  (cinturino/orlo, carré dietro, carré davanti — quest'ultimo e il cinturino al
+  netto di `PINTUCK_SPREAD_MM`, E5.2), un bordo con la propria copia non slashata
+  (pannello davanti c.f., che presidia il fatto che il taglio del pintuck non
+  attraversi la cucitura) e le due cuciture di fianco, disegnate separatamente.
+  `SEAM_MATCH_TOL_MM` ha ora un test dedicato che accorcia il cinturino di 1 cm e
+  verifica il warning.

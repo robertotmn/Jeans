@@ -244,27 +244,28 @@ def build_jacket_pattern(m: JacketMeasurements,
     def seam(draft, name: str) -> float:
         return sum(arc_length(pts) for n, pts in draft.edges if n == name)
 
-    # the pintuck opens the centre front panel, so its yoke and waistband edges
-    # carry 2 cm of cloth that the tuck folds away before assembly (D18)
+    # Each pair measures a whole against the parts it was cut into, a slashed
+    # edge against the untouched copy of itself, or two seams drafted apart, so
+    # a mismatch can really happen. Three more couplings of the design are left
+    # out because both members would be the same segment: the cuff is built as
+    # the sum of the two `cuff_seam` edges it would be checked against, and the
+    # back and the front-side panel seam are shared landmark for landmark by the
+    # two pieces that meet on them.
+    # The pintuck opens the centre front panel, so its yoke and waistband edges
+    # carry 2 cm of cloth that the tuck folds away before assembly (D18).
     spread = front_centre.report["pintuck_spread_mm"]
     body = [front_yoke, front_centre, chest_panel, front_side,
             back_yoke, back_centre, back_side]
     checks = [
         ("cinturino/orlo", seam(band, "body_seam"),
          sum(seam(p, "waistband_seam") for p in body) - spread),
-        ("polsino/fondo manica", seam(cuff, "sleeve_seam"),
-         seam(upper, "cuff_seam") + seam(under, "cuff_seam")),
         ("carre dietro", seam(back_yoke, "yoke_seam"),
          seam(back_centre, "yoke_seam") + seam(back_side, "yoke_seam")),
         ("carre davanti", seam(front_yoke, "yoke_seam"),
          seam(front_centre, "yoke_seam") + seam(chest_panel, "yoke_seam")
          + seam(front_side, "yoke_seam") - spread),
-        ("pannello dietro", seam(back_centre, "panel_seam"),
-         seam(back_side, "panel_seam")),
         ("pannello davanti c.f.", seam(front_centre, "panel_seam"),
          seam(chest_panel, "panel_seam_cf")),
-        ("pannello davanti fianco", seam(chest_panel, "panel_seam_side"),
-         seam(front_side, "panel_seam")),
         ("fianchi", seam(back_side, "side"), seam(front_side, "side")),
     ]
     for label, a, b in checks:

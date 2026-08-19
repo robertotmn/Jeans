@@ -1,10 +1,14 @@
 """Design 4041 assembly: the 17 pieces, their cut lines and the report, plus
 the regression test that the fold rule added to `SeamAllowances.for_edges`
 leaves the jeans pieces exactly as they were."""
+from dataclasses import replace
+
 import pytest
 from shapely.geometry import Polygon
 
 from tests.test_draft_jacket import SIZES
+from jeans_pattern import pattern as pattern_module
+from jeans_pattern.geometry import Point
 from jeans_pattern.measurements_jacket import JacketMeasurements
 from jeans_pattern.pattern import SeamAllowances, build_jacket_pattern
 
@@ -113,6 +117,25 @@ def test_jacket_pattern_degrades_instead_of_raising(field, value):
         assert Polygon([(p.x, p.y) for p in piece.outline]).is_simple, piece.name
         if piece.cut_outline is None:                  # degraded, and it says so
             assert any(piece.name in w for w in pat.report["warnings"])
+
+
+def test_seam_mismatch_reaches_the_warnings(monkeypatch, size50_jacket):
+    """SEAM_MATCH_TOL_MM has teeth: a waistband cut 1 cm short of the hem it is
+    sewn to comes back as a warning instead of passing unnoticed."""
+    build_band = pattern_module.build_jacket_waistband
+
+    def short_band(db):
+        band = build_band(db)
+        h, length = band.report["height_mm"], band.report["length_mm"] - 10.0
+        c = [Point(0.0, 0.0), Point(length, 0.0), Point(length, h), Point(0.0, h)]
+        return replace(band, construction_lines=[], labels=[],
+                       edges=[("body_seam", [c[0], c[1]]), ("fold_cb", [c[1], c[2]]),
+                              ("lower_seam", [c[2], c[3]]), ("front", [c[3], c[0]])],
+                       report={**band.report, "length_mm": length})
+
+    monkeypatch.setattr(pattern_module, "build_jacket_waistband", short_band)
+    warnings = build_jacket_pattern(size50_jacket).report["warnings"]
+    assert warnings == ["cinturino/orlo: 57.2 cm contro 58.2 cm"]
 
 
 # ---------------------------------------------------------------------------
