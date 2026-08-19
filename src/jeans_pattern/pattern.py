@@ -1,11 +1,33 @@
 """Pattern piece model and full-pattern assembly.
 
 A PatternPiece carries the NET seam outline (mm) plus an optional CUT outline
-(net + seam allowances), construction lines and text labels. The assembler
-`build_full_pattern` produces every Design 3069 piece from the measurements.
+(net + seam allowances), construction lines and text labels. The assemblers
+`build_full_pattern` and `build_jacket_pattern` produce every Design 3069 resp.
+Design 4041 piece from the measurements.
 """
 from dataclasses import dataclass, field
 
+from .draft_jacket import draft_jacket_back, draft_jacket_front, draft_jacket_sleeve
+from .draft_jacket_design import (
+    build_back_centre,
+    build_back_side_panel,
+    build_back_yoke,
+    build_chest_pocket_bag,
+    build_chest_pocket_flap,
+    build_collar,
+    build_cuff,
+    build_front_centre,
+    build_front_chest_panel,
+    build_front_side_panel,
+    build_front_yoke,
+    build_jacket_waistband,
+    build_side_pocket_bag,
+    build_side_pocket_welt,
+    build_tab,
+    design_body,
+    front_jacket_marks,
+    split_sleeve,
+)
 from .draft_ms import draft_back, draft_front
 from .draft_ms_extras import (
     build_back_pocket,
@@ -19,13 +41,15 @@ from .draft_ms_extras import (
     build_yoke,
     front_design_marks,
 )
-from .geometry import Point, chain_outline, offset_outline
+from .geometry import Point, arc_length, chain_outline, offset_outline
 from .measurements import Measurements
+from .measurements_jacket import JacketMeasurements
 
 
 @dataclass(frozen=True)
 class SeamAllowances:
-    """Cut-line configuration: hem edges get hem_mm, every other edge seam_mm.
+    """Cut-line configuration by edge name: `fold*` edges lie on a fold and get
+    nothing, `hem` gets hem_mm, every other edge seam_mm.
     Set both to 0 to export the net pattern only."""
     seam_mm: float = 15.0
     hem_mm: float = 30.0
@@ -35,7 +59,8 @@ class SeamAllowances:
         return self.seam_mm > 0 or self.hem_mm > 0
 
     def for_edges(self, edges: list[tuple[str, list[Point]]]) -> dict[str, float]:
-        return {name: (self.hem_mm if name == "hem" else self.seam_mm)
+        return {name: (0.0 if name.startswith("fold")
+                       else self.hem_mm if name == "hem" else self.seam_mm)
                 for name, _pts in edges}
 
 
@@ -157,6 +182,97 @@ def build_full_pattern(m: Measurements, sa: SeamAllowances | None = None) -> Pat
         "front_waist_mm": front.report["waist_len_mm"],
         "back_waist_mm": back.report["back_waist_mm"],
         "waist_rest_mm": back.report["rest_mm"],
+        "warnings": warnings,
+    }
+    return Pattern(pieces=pieces, report=report)
+
+
+SEAM_MATCH_TOL_MM = 2.5    # two edges sewn together may differ by this much
+
+
+def build_jacket_pattern(m: JacketMeasurements,
+                         sa: SeamAllowances | None = None) -> Pattern:
+    """All Design 4041 pieces from the given jacket measurements.
+
+    Returns the pattern plus a report with the booklet's checks (chest and hip
+    ease, cap ease, collar length) and the derived values shown in the UI. The
+    matched seams are re-measured on the assembled pieces and any mismatch
+    beyond SEAM_MATCH_TOL_MM lands in the warnings.
+    """
+    sa = sa if sa is not None else SeamAllowances()
+
+    back = draft_jacket_back(m)
+    front = draft_jacket_front(m, back)
+    sleeve = draft_jacket_sleeve(m, back, front)
+    db = design_body(back, front)
+    marks = front_jacket_marks(db)
+    upper, under = split_sleeve(sleeve)
+
+    front_yoke = build_front_yoke(db, marks)
+    front_centre = build_front_centre(db, marks)
+    chest_panel = build_front_chest_panel(db, marks)
+    front_side = build_front_side_panel(db, marks)
+    back_yoke = build_back_yoke(db)
+    back_centre = build_back_centre(db)
+    back_side = build_back_side_panel(db)
+    cuff = build_cuff(upper, under)
+    collar = build_collar(db)
+    band = build_jacket_waistband(db)
+
+    drafts = [front_yoke, front_centre, chest_panel, front_side,
+              back_yoke, back_centre, back_side,
+              upper, under, cuff, collar, band,
+              build_chest_pocket_flap(), build_chest_pocket_bag(),
+              build_side_pocket_welt(), build_side_pocket_bag(), build_tab()]
+    pieces = [_make_piece(d.name, d.edges, sa,
+                          construction_lines=d.construction_lines, labels=d.labels)
+              for d in drafts]
+
+    def seam(draft, name: str) -> float:
+        return sum(arc_length(pts) for n, pts in draft.edges if n == name)
+
+    # the pintuck opens the centre front panel, so its yoke and waistband edges
+    # carry 2 cm of cloth that the tuck folds away before assembly (D18)
+    spread = front_centre.report["pintuck_spread_mm"]
+    body = [front_yoke, front_centre, chest_panel, front_side,
+            back_yoke, back_centre, back_side]
+    checks = [
+        ("cinturino/orlo", seam(band, "body_seam"),
+         sum(seam(p, "waistband_seam") for p in body) - spread),
+        ("polsino/fondo manica", seam(cuff, "sleeve_seam"),
+         seam(upper, "cuff_seam") + seam(under, "cuff_seam")),
+        ("carre dietro", seam(back_yoke, "yoke_seam"),
+         seam(back_centre, "yoke_seam") + seam(back_side, "yoke_seam")),
+        ("carre davanti", seam(front_yoke, "yoke_seam"),
+         seam(front_centre, "yoke_seam") + seam(chest_panel, "yoke_seam")
+         + seam(front_side, "yoke_seam") - spread),
+        ("pannello dietro", seam(back_centre, "panel_seam"),
+         seam(back_side, "panel_seam")),
+        ("pannello davanti c.f.", seam(front_centre, "panel_seam"),
+         seam(chest_panel, "panel_seam_cf")),
+        ("pannello davanti fianco", seam(chest_panel, "panel_seam_side"),
+         seam(front_side, "panel_seam")),
+        ("fianchi", seam(back_side, "side"), seam(front_side, "side")),
+    ]
+    warnings = list(front.report["warnings"]) + list(collar.report["warnings"])
+    warnings += upper.report["warnings"]
+    for label, a, b in checks:
+        if abs(a - b) > SEAM_MATCH_TOL_MM:
+            warnings.append(f"{label}: {a / 10:.1f} cm contro {b / 10:.1f} cm")
+
+    report = {
+        "model": "jacket",
+        "scye_depth_mm": m.scye_depth_mm,
+        "length_mm": m.jacket_length_mm,
+        "chest_ease_mm": front.report["chest_ease_mm"],
+        "hip_ease_mm": front.report["hip_ease_mm"],
+        "armhole_circ_mm": front.report["armhole_circ_mm"],
+        "sleeve_cap_height_mm": sleeve.report["sleeve_cap_height_mm"],
+        "sleeve_cap_ease_mm": upper.report["cap_ease_mm"],
+        "neckline_mm": db.report["neckline_mm"],
+        "collar_correction_mm": collar.report["correction_mm"],
+        "waistband_len_mm": band.report["length_mm"],
+        "cuff_len_mm": cuff.report["length_mm"],
         "warnings": warnings,
     }
     return Pattern(pieces=pieces, report=report)

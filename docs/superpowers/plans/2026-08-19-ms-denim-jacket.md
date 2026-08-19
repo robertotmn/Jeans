@@ -767,3 +767,32 @@ e davanti 224.72 (224.75) · pannello dietro 461.03 (461.14) · orlo dietro
 Ac 531.15 (**agio 0.50 mm**) · aree: i tre pannelli dietro ricompongono
 esattamente il dietro design, i quattro davanti lo ricompongono più la
 striscia di 2 cm del pintuck.
+
+**Fase 5 — assemblaggio (2026-08-19).** Nessuna quota del libro rimessa in
+discussione: `build_jacket_pattern` monta i 17 pezzi della fase 4 con
+`_make_piece` e la regola `fold*` → 0 di `for_edges`. Note:
+
+- **E5.1 — le verifiche di lunghezza accoppiata vanno lette sui BORDI dei pezzi
+  montati, non sugli scalari dei report**, altrimenti sono tautologie (il
+  polsino *è* la somma dei due fondi manica, il cinturino *è* la somma dei due
+  orli). Le otto coppie controllate (cinturino/orlo, polsino/fondo manica,
+  carré dietro e davanti, i tre pannelli, i fianchi) tornano a **0.00 mm** su
+  tutte e quattro le taglie, quindi la soglia `SEAM_MATCH_TOL_MM = 2.5` non
+  scatta mai: resta come rete di sicurezza per le fasi future.
+- **E5.2 — il pintuck entra nei conti degli orli e del carré davanti.** Lo
+  slash&spread (D18) apre `davanti` di 2 cm: la sua catena guadagna il labbro
+  del taglio **due volte**, sul bordo carré e sul bordo orlo. La somma dei
+  bordi dei pannelli davanti è quindi `carré + 20 mm` e `cinturino + 20 mm`;
+  le due verifiche sottraggono `PINTUCK_SPREAD_MM` (la piega cucita richiude
+  quei 2 cm prima del montaggio).
+- **E5.3 — nessun warning duplicato sull'agio testa.** Il piano prevedeva in
+  `build_jacket_pattern` un warning per `|cap_ease| > 10 mm` o clamp:
+  `split_sleeve` ne emette già uno più severo (tolleranza 1 mm, D17), che
+  viene propagato tale e quale invece di essere raddoppiato.
+
+**Valori generati dal report (taglie 44/50/56/62):** agio petto 72/75/66/57 mm ·
+agio fianchi 37/54.1/61.3/73.7 mm (warning "Check Hg" solo alla 44) ·
+Ac 490.3/531.2/571.3/609.6 · Sch 147.7/161.0/173.9/185.6 · agio testa
+0.25/0.50/3.36/9.61 mm (warning di clamp su 56 e 62) · scollo
+240.8/258.3/275.1/292.1 · correzione colletto −1.69/−1.58/−1.49/−1.41 mm ·
+cinturino 515.1/582.3/649.6/722.0 · polsino 321.8/321.5/321.4/321.4.
